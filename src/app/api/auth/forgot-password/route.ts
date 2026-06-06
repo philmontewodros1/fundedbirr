@@ -14,12 +14,16 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Email is required' }, { status: 400 })
     }
 
-    // Get user name
+    // Check user exists in our database
     const { data: user } = await supabaseAdmin
       .from('users')
       .select('full_name')
       .eq('email', email)
-      .single()
+      .maybeSingle()
+
+    if (!user) {
+      return NextResponse.json({ error: 'No account found with this email' }, { status: 404 })
+    }
 
     // Generate recovery link using admin API (doesn't send email)
     const { data, error } = await supabaseAdmin.auth.admin.generateLink({
@@ -34,7 +38,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: error.message }, { status: 400 })
     }
 
-    const resetLink = data.properties?.action_link || data.properties?.email_otp || ''
+    const resetLink = data.properties?.action_link || ''
 
     if (!resetLink) {
       return NextResponse.json({ error: 'Failed to generate reset link' }, { status: 500 })
@@ -43,7 +47,7 @@ export async function POST(req: NextRequest) {
     // Send email via Resend
     await sendResetPasswordEmail(
       email,
-      user?.full_name || email.split('@')[0],
+      user.full_name || email.split('@')[0],
       resetLink
     )
 
