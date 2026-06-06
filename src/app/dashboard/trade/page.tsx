@@ -46,10 +46,7 @@ function pct(value: number, total: number) {
 // ── component ──────────────────────────────────────────────────────────────
 export default function TradePage() {
   const chartRef = useRef<HTMLDivElement>(null)
-  const chartInstance = useRef<any>(null)
-  const candleSeries = useRef<any>(null)
-  const priceLine = useRef<any>(null)
-  const candleBuffer = useRef<any[]>([])
+  const [tvReady, setTvReady] = useState(false)
 
   const [price, setPrice] = useState<number>(0)
   const [bid, setBid] = useState<number>(0)
@@ -116,66 +113,52 @@ export default function TradePage() {
     fetchHistory()
   }, [fetchPositions, fetchHistory])
 
-  // ── init chart ──────────────────────────────────────────────────────────
+  // ── init TradingView chart ──────────────────────────────────────────────
   useEffect(() => {
-    if (!chartRef.current) return
-    let destroyed = false
+    if (!chartRef.current || tvReady) return
+    const id = 'tv_chart_' + Math.random().toString(36).slice(2, 8)
+    chartRef.current.id = id
+    setTvReady(true)
 
-    import('lightweight-charts').then(({ createChart, CandlestickSeries }) => {
-      if (destroyed || !chartRef.current) return
-
-      const chart = createChart(chartRef.current, {
-        width: chartRef.current.clientWidth,
+    const script = document.createElement('script')
+    script.src = 'https://s3.tradingview.com/tv.js'
+    script.async = true
+    script.onload = () => {
+      if (typeof (window as any).TradingView === 'undefined') return
+      new (window as any).TradingView.widget({
+        container_id: id,
+        width: '100%',
         height: 380,
-        layout: {
-          background: { color: '#151810' },
-          textColor: '#9A9880'
-        },
-        grid: {
-          vertLines: { color: '#1E2218' },
-          horzLines: { color: '#1E2218' }
-        },
-        crosshair: { mode: 1 },
-        timeScale: { borderColor: '#272C1F', timeVisible: true }
+        symbol: 'OANDA:XAUUSD',
+        interval: '60',
+        timezone: 'Africa/Addis_Ababa',
+        theme: 'dark',
+        style: '1',
+        locale: 'en',
+        toolbar_bg: '#151810',
+        enable_publishing: false,
+        hide_side_toolbar: false,
+        allow_symbol_change: false,
+        details: true,
+        studies: [
+          'RSI@tv-basicstudies',
+          'MACD@tv-basicstudies',
+          'Stochastic@tv-basicstudies',
+          'BB@tv-basicstudies',
+        ],
+        show_popup_button: true,
+        popup_width: '1000',
+        popup_height: '650',
+        support_host: 'https://www.tradingview.com',
       })
-
-      const series = chart.addSeries(CandlestickSeries, {
-        upColor: '#28A86A',
-        downColor: '#E84B4B',
-        borderVisible: false,
-        wickUpColor: '#28A86A',
-        wickDownColor: '#E84B4B'
-      })
-
-      chartInstance.current = chart
-      candleSeries.current = series
-
-      // Seed with dummy candles so chart isn't empty
-      const now = Math.floor(Date.now() / 1000)
-      const seed: any[] = []
-      let p = 3340
-      for (let i = 60; i >= 0; i--) {
-        const o = p
-        const h = o + Math.random() * 3
-        const l = o - Math.random() * 3
-        const c = l + Math.random() * (h - l)
-        p = c
-        seed.push({ time: now - i * 60, open: o, high: h, low: l, close: c })
-      }
-      series.setData(seed)
-      candleBuffer.current = seed
-
-      const ro = new ResizeObserver(() => {
-        if (chartRef.current) chart.resize(chartRef.current.clientWidth, 380)
-      })
-      ro.observe(chartRef.current)
-    })
+    }
+    document.head.appendChild(script)
 
     return () => {
-      destroyed = true
-      chartInstance.current?.remove()
+      const el = document.getElementById(id)
+      if (el) el.innerHTML = ''
     }
-  }, [])
+  }, [tvReady])
 
   // ── gold price polling ──────────────────────────────────────────────────
   useEffect(() => {
@@ -188,24 +171,6 @@ export default function TradePage() {
         setPrice(p)
         setBid(p)
         setAsk(Math.round((p + SPREAD) * 100) / 100)
-
-        // Update chart candle
-        if (candleSeries.current) {
-          const now = Math.floor(Date.now() / 1000)
-          const minuteTs = Math.floor(now / 60) * 60
-          const last = candleBuffer.current[candleBuffer.current.length - 1]
-
-          if (last && last.time === minuteTs) {
-            last.close = p
-            last.high = Math.max(last.high, p)
-            last.low = Math.min(last.low, p)
-            candleSeries.current.update(last)
-          } else {
-            const newCandle = { time: minuteTs, open: p, high: p, low: p, close: p }
-            candleBuffer.current.push(newCandle)
-            candleSeries.current.update(newCandle)
-          }
-        }
 
         // Check SL/TP on open positions
         setOpenTrades((prev) => {
