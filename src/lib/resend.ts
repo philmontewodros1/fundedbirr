@@ -78,6 +78,34 @@ export async function sendChallengeFailedEmail(email: string, name: string, acco
   }
 }
 
+export async function sendResetPasswordEmail(email: string, name: string, resetLink: string) {
+  if (!process.env.RESEND_API_KEY) return;
+  try {
+    await resend.emails.send({
+      from,
+      to: email,
+      subject: 'Reset your FundedBirr password',
+      html: `
+        <div style="font-family: sans-serif; max-width: 480px; margin: 0 auto;">
+          <h1 style="color:#C9912A;">Reset Password</h1>
+          <p>Hi ${name},</p>
+          <p>We received a request to reset your password. Click the button below to choose a new one.</p>
+          <p>
+            <a href="${resetLink}" style="display:inline-block;background:#C9912A;color:#000;padding:10px 20px;border-radius:8px;text-decoration:none;font-weight:bold;">Reset Password</a>
+          </p>
+          <p>If the button doesn't work, copy and paste this link in your browser:</p>
+          <p style="word-break:break-all;font-size:12px;color:#666;">${resetLink}</p>
+          <p>If you didn't request this, you can safely ignore this email.</p>
+          <p style="color:#666;font-size:12px;">FundedBirr — Simulated evaluation, real rewards.</p>
+        </div>
+      `,
+    });
+  } catch (err) {
+    console.error('Reset password email error:', err);
+    throw err;
+  }
+}
+
 export async function sendPayoutApprovedEmail(email: string, name: string, amount: number, method: string) {
   if (!process.env.RESEND_API_KEY) return;
   try {
