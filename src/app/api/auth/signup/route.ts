@@ -1,4 +1,6 @@
 import { NextResponse } from 'next/server';
+import { cookies } from 'next/headers';
+import { createServerClient } from '@supabase/ssr';
 import { getSupabaseAdmin } from '@/lib/supabase-admin';
 import { sendWelcomeEmail } from '@/lib/resend';
 
@@ -12,10 +14,11 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
 
-    const { data: authData, error: authError } = await supabaseAdmin.auth.signUp({
+    const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
       email,
       password,
-      options: { data: { full_name: fullName, phone } },
+      email_confirm: true,
+      user_metadata: { full_name: fullName, phone },
     });
 
     if (authError) {
@@ -54,7 +57,25 @@ export async function POST(req: Request) {
       sendWelcomeEmail(email, fullName);
     }
 
-    return NextResponse.json({ user: authData.user, session: authData.session });
+    const cookieStore = cookies();
+    const supabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          getAll() { return cookieStore.getAll(); },
+          setAll(cookiesToSet) {
+            cookiesToSet.forEach(({ name, value, options }) => {
+              cookieStore.set(name, value, options);
+            });
+          },
+        },
+      },
+    );
+
+    await supabase.auth.signInWithPassword({ email, password });
+
+    return NextResponse.json({ user: authData.user });
   } catch (err) {
     console.error('Signup error:', err);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
