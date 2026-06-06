@@ -1,6 +1,8 @@
 // src/app/api/trade/close/route.ts
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { sendChallengeFailedEmail } from '@/lib/resend'
+import { PLAN_LABELS } from '@/lib/constants'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -113,7 +115,7 @@ export async function POST(req: NextRequest) {
       })
       .eq('id', challenge.id)
 
-    // If failed — close all open positions
+    // If failed — close all open positions and send email
     if (newStatus === 'failed') {
       await supabase
         .from('trades')
@@ -125,6 +127,26 @@ export async function POST(req: NextRequest) {
         })
         .eq('challenge_id', challenge.id)
         .eq('status', 'open')
+
+      // Send fail notification email
+      try {
+        const { data: user } = await supabase
+          .from('users')
+          .select('email, full_name')
+          .eq('id', user_id)
+          .single()
+        if (user) {
+          await sendChallengeFailedEmail(
+            user.email,
+            user.full_name || 'Trader',
+            PLAN_LABELS[challenge.account_size] || challenge.account_size,
+            failReason,
+            process.env.NEXT_PUBLIC_APP_URL || 'https://www.fundedbirr.com'
+          )
+        }
+      } catch (e) {
+        console.error('Fail email error:', e)
+      }
     }
 
     return NextResponse.json({

@@ -52,6 +52,32 @@ export async function sendChallengeEmail(email: string, name: string, accountSiz
   }
 }
 
+export async function sendChallengeFailedEmail(email: string, name: string, accountSize: string, reason: string, appUrl: string) {
+  if (!process.env.RESEND_API_KEY) return;
+  try {
+    await resend.emails.send({
+      from,
+      to: email,
+      subject: 'Challenge Failed — Don\'t Give Up 💪',
+      html: `
+        <div style="font-family: sans-serif; max-width: 480px; margin: 0 auto;">
+          <h1 style="color:#E84B4B;">Challenge Failed</h1>
+          <p>Hi ${name},</p>
+          <p>Your <strong>${accountSize.toUpperCase()}</strong> challenge has been closed due to:</p>
+          <p style="background:#1a1a1a;color:#ff6b6b;padding:12px;border-radius:8px;font-size:14px;">${reason}</p>
+          <p>Don't be discouraged — many successful traders failed their first evaluation.</p>
+          <p>
+            <a href="${appUrl}/pricing" style="display:inline-block;background:#C9912A;color:#000;padding:10px 20px;border-radius:8px;text-decoration:none;font-weight:bold;">Try Again</a>
+          </p>
+          <p style="color:#666;font-size:12px;">FundedBirr — Simulated evaluation, real rewards.</p>
+        </div>
+      `,
+    });
+  } catch (err) {
+    console.error('Challenge failed email error:', err);
+  }
+}
+
 export async function sendPayoutApprovedEmail(email: string, name: string, amount: number, method: string) {
   if (!process.env.RESEND_API_KEY) return;
   try {

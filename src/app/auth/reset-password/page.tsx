@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createBrowserClient } from '@supabase/ssr';
 
@@ -10,33 +10,67 @@ const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
 );
 
-export default function LoginPage() {
+export default function ResetPasswordPage() {
   const router = useRouter();
-  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [confirm, setConfirm] = useState('');
   const [error, setError] = useState('');
+  const [success, setSuccess] = useState(false);
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    supabase.auth.onAuthStateChange(async (event) => {
+      if (event === 'PASSWORD_RECOVERY') {
+      }
+    });
+  }, []);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError('');
+
+    if (password.length < 6) {
+      setError('Password must be at least 6 characters');
+      return;
+    }
+
+    if (password !== confirm) {
+      setError('Passwords do not match');
+      return;
+    }
+
     setLoading(true);
 
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+      const { error } = await supabase.auth.updateUser({ password });
 
       if (error) {
         setError(error.message);
         return;
       }
 
-      router.push('/dashboard');
-      router.refresh();
+      setSuccess(true);
+      setTimeout(() => router.push('/auth/login'), 3000);
     } catch {
       setError('Connection error. Please try again.');
     } finally {
       setLoading(false);
     }
+  }
+
+  if (success) {
+    return (
+      <section style={{ padding: '5rem 2rem', maxWidth: '460px', margin: '0 auto' }}>
+        <div style={{
+          background: 'var(--dark-2)', border: '1px solid rgba(255,255,255,0.06)',
+          borderRadius: '16px', padding: '2.5rem', textAlign: 'center',
+        }}>
+          <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>✅</div>
+          <h2 style={{ fontFamily: "'Syne', sans-serif", fontWeight: 700, fontSize: '1.4rem', color: 'var(--green-light)' }}>Password Updated!</h2>
+          <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', marginTop: '0.5rem' }}>Redirecting to login...</p>
+        </div>
+      </section>
+    );
   }
 
   return (
@@ -53,59 +87,40 @@ export default function LoginPage() {
             Funded<span style={{ color: 'var(--green-light)' }}>Birr</span>
           </Link>
           <h2 style={{ fontFamily: "'Syne', sans-serif", fontWeight: 700, fontSize: '1.4rem', marginTop: '1.5rem', marginBottom: '0.25rem' }}>
-            Welcome back
+            Set New Password
           </h2>
-          <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>Sign in to your dashboard</p>
         </div>
 
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
           <div>
-            <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '0.4rem' }}>Email</label>
-            <input
-              type="email" value={email} onChange={e => setEmail(e.target.value)}
-              placeholder="you@example.com" required
+            <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '0.4rem' }}>New Password</label>
+            <input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="Min 6 characters" required minLength={6}
               style={{
                 width: '100%', padding: '0.75rem 1rem', background: 'rgba(255,255,255,0.04)',
                 border: '1px solid rgba(255,255,255,0.08)', borderRadius: '8px',
                 color: 'var(--text)', fontSize: '0.9rem', outline: 'none',
-              }}
-            />
+              }} />
           </div>
           <div>
-            <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '0.4rem' }}>Password</label>
-            <input
-              type="password" value={password} onChange={e => setPassword(e.target.value)}
-              placeholder="••••••••" required
+            <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '0.4rem' }}>Confirm Password</label>
+            <input type="password" value={confirm} onChange={e => setConfirm(e.target.value)} placeholder="Repeat password" required
               style={{
                 width: '100%', padding: '0.75rem 1rem', background: 'rgba(255,255,255,0.04)',
                 border: '1px solid rgba(255,255,255,0.08)', borderRadius: '8px',
                 color: 'var(--text)', fontSize: '0.9rem', outline: 'none',
-              }}
-            />
+              }} />
           </div>
           {error && (
             <div style={{ color: '#ff6b6b', fontSize: '0.85rem', textAlign: 'center' }}>{error}</div>
           )}
-          <button
-            type="submit" disabled={loading}
-            className="btn-primary"
-            style={{
-              padding: '0.75rem', borderRadius: '8px', fontSize: '0.95rem',
-              border: 'none', cursor: loading ? 'not-allowed' : 'pointer', opacity: loading ? 0.6 : 1,
-              marginTop: '0.5rem',
-            }}
-          >
-            {loading ? 'Signing in...' : 'Sign In'}
+          <button type="submit" disabled={loading} className="btn-primary" style={{
+            padding: '0.75rem', borderRadius: '8px', fontSize: '0.95rem',
+            border: 'none', cursor: loading ? 'not-allowed' : 'pointer', opacity: loading ? 0.6 : 1,
+            marginTop: '0.5rem',
+          }}>
+            {loading ? 'Updating...' : 'Update Password'}
           </button>
         </form>
-
-        <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', textAlign: 'center', marginTop: '0.75rem' }}>
-          <Link href="/auth/forgot-password" style={{ color: 'var(--text-muted)', textDecoration: 'none', fontSize: '0.8rem' }}>Forgot password?</Link>
-        </p>
-        <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', textAlign: 'center', marginTop: '1rem' }}>
-          No account?{' '}
-          <Link href="/auth/register" style={{ color: 'var(--gold-light)', textDecoration: 'none' }}>Register here</Link>
-        </p>
       </div>
     </section>
   );
