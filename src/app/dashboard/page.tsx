@@ -150,6 +150,28 @@ export default function DashboardPage() {
             ))}
           </div>
 
+          {challenge.status === 'active' && (
+            <div style={{
+              background: 'rgba(201,145,42,0.08)', border: '1px solid rgba(201,145,42,0.25)',
+              borderRadius: '14px', padding: '1.5rem', marginBottom: '2rem', textAlign: 'center',
+            }}>
+              <div style={{ fontSize: '1.5rem', marginBottom: '0.75rem' }}>🟡</div>
+              <h2 style={{ fontFamily: "'Syne', sans-serif", fontWeight: 700, fontSize: '1.2rem', marginBottom: '0.5rem', color: 'var(--gold-light)' }}>
+                Your Trading Terminal is Ready
+              </h2>
+              <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', marginBottom: '1.25rem' }}>
+                Trade XAUUSD with your ${challenge.virtual_balance.toLocaleString()} virtual balance.
+              </p>
+              <a href="/dashboard/trade" className="no-underline" style={{
+                background: '#C9912A', color: '#0D0F0A', padding: '0.85rem 2rem',
+                borderRadius: '10px', fontFamily: "'Syne', sans-serif", fontWeight: 700,
+                fontSize: '1rem', display: 'inline-block', letterSpacing: '-0.02em',
+              }}>
+                🟡 Open Trading Terminal →
+              </a>
+            </div>
+          )}
+
           {/* Phase Progress */}
           <div style={{
             background: 'var(--dark-2)', border: '1px solid rgba(255,255,255,0.06)',
