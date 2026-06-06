@@ -44,11 +44,11 @@ function RegisterForm() {
         return;
       }
 
-      if (data.session) {
-        await supabase.auth.setSession({
-          access_token: data.session.access_token,
-          refresh_token: data.session.refresh_token,
-        });
+      const { error } = await supabase.auth.signInWithPassword({ email, password });
+
+      if (error) {
+        setError('Account created but sign-in failed. Please log in.');
+        return;
       }
 
       router.push('/dashboard');
