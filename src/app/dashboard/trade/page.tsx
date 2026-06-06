@@ -69,19 +69,23 @@ export default function TradePage() {
 
   // ── fetch user session ──────────────────────────────────────────────────
   useEffect(() => {
-    fetch('/api/auth/session')
-      .then((r) => r.json())
-      .then((d) => {
-        if (d?.user?.id) setUserId(d.user.id)
+    import('@supabase/ssr').then(({ createBrowserClient }) => {
+      const supabase = createBrowserClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      )
+      supabase.auth.getUser().then(({ data: { user } }) => {
+        if (user?.id) setUserId(user.id)
       })
+    })
   }, [])
 
   // ── fetch challenge ─────────────────────────────────────────────────────
   const fetchChallenge = useCallback(async () => {
     if (!userId) return
-    const res = await fetch(`/api/dashboard?user_id=${userId}`)
+    const res = await fetch(`/api/dashboard`)
     const data = await res.json()
-    if (data?.challenge) setChallenge(data.challenge)
+    if (data?.activeChallenge) setChallenge(data.activeChallenge)
   }, [userId])
 
   useEffect(() => {
