@@ -36,5 +36,14 @@ export async function GET() {
     .limit(1)
     .maybeSingle();
 
-  return NextResponse.json({ profile, activeChallenge });
+  const { data: latestPayment } = await supabase
+    .from('payments')
+    .select('status, amount_etb, challenge_type, submitted_at')
+    .eq('user_id', user.id)
+    .not('telebirr_tx_ref', 'is', null)
+    .order('submitted_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  return NextResponse.json({ profile, activeChallenge, latestPayment });
 }

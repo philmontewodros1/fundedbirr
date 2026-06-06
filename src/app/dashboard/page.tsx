@@ -19,6 +19,13 @@ interface Challenge {
   started_at: string;
 }
 
+interface PaymentInfo {
+  status: string;
+  amount_etb: number;
+  challenge_type: string;
+  submitted_at: string;
+}
+
 interface UserProfile {
   full_name: string;
   email: string;
@@ -29,6 +36,7 @@ export default function DashboardPage() {
   const router = useRouter();
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [challenge, setChallenge] = useState<Challenge | null>(null);
+  const [payment, setPayment] = useState<PaymentInfo | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -42,6 +50,7 @@ export default function DashboardPage() {
         const data = await res.json();
         setProfile(data.profile);
         setChallenge(data.activeChallenge);
+        setPayment(data.latestPayment);
       } catch {
         // not authenticated
       } finally {
@@ -225,19 +234,51 @@ export default function DashboardPage() {
         </>
       ) : (
         <div style={{
-          background: 'var(--dark-2)', border: '1px solid rgba(255,255,255,0.06)',
+          background: 'var(--dark-2)', border: payment?.status === 'rejected' ? '1px solid rgba(255,107,107,0.2)' : '1px solid rgba(255,255,255,0.06)',
           borderRadius: '14px', padding: '3rem 2rem', textAlign: 'center',
         }}>
-          <div style={{ fontSize: '2.5rem', marginBottom: '1rem' }}>📊</div>
-          <h2 style={{ fontFamily: "'Syne', sans-serif", fontWeight: 700, fontSize: '1.3rem', marginBottom: '0.5rem' }}>
-            No Active Challenge
-          </h2>
-          <p style={{ color: 'var(--text-muted)', marginBottom: '1.5rem' }}>
-            You don&apos;t have an active challenge. Purchase one to start trading.
-          </p>
-          <Link href="/pricing" className="btn-primary no-underline px-8 py-3 rounded-lg" style={{ display: 'inline-block' }}>
-            Buy a Challenge →
-          </Link>
+          {payment?.status === 'pending' && (
+            <>
+              <div style={{ fontSize: '2.5rem', marginBottom: '1rem' }}>⏳</div>
+              <h2 style={{ fontFamily: "'Syne', sans-serif", fontWeight: 700, fontSize: '1.3rem', marginBottom: '0.5rem' }}>
+                Payment Submitted — Awaiting Verification
+              </h2>
+              <p style={{ color: 'var(--text-muted)', marginBottom: '0.5rem' }}>
+                Your {payment.challenge_type} challenge payment of {payment.amount_etb.toLocaleString()} ETB is pending review.
+              </p>
+              <p style={{ color: 'var(--text-muted)', marginBottom: '1.5rem', fontSize: '0.82rem' }}>
+                Verification usually takes within 2 hours. You will receive a confirmation email once approved.
+              </p>
+            </>
+          )}
+          {payment?.status === 'rejected' && (
+            <>
+              <div style={{ fontSize: '2.5rem', marginBottom: '1rem' }}>❌</div>
+              <h2 style={{ fontFamily: "'Syne', sans-serif", fontWeight: 700, fontSize: '1.3rem', marginBottom: '0.5rem', color: '#ff6b6b' }}>
+                Payment Not Verified
+              </h2>
+              <p style={{ color: 'var(--text-muted)', marginBottom: '1.5rem' }}>
+                Your payment could not be verified. Please contact <strong>@fundedbirr</strong> on Telegram for assistance.
+              </p>
+              <Link href="/pricing" className="btn-primary no-underline px-8 py-3 rounded-lg" style={{ display: 'inline-block' }}>
+                Try Again →
+              </Link>
+            </>
+          )}
+          {(!payment) && (
+            <>
+              <div style={{ fontSize: '2.5rem', marginBottom: '1rem' }}>📊</div>
+              <h2 style={{ fontFamily: "'Syne', sans-serif", fontWeight: 700, fontSize: '1.3rem', marginBottom: '0.5rem' }}>
+                No Active Challenge
+              </h2>
+              <p style={{ color: 'var(--text-muted)', marginBottom: '1.5rem' }}>
+                You don&apos;t have an active challenge. Purchase one to start trading.
+              </p>
+              <Link href="/pricing" className="btn-primary no-underline px-8 py-3 rounded-lg" style={{ display: 'inline-block' }}>
+                Buy a Challenge →
+              </Link>
+            </>
+          )}
         </div>
       )}
     </section>
