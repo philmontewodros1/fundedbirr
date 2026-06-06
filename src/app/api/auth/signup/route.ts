@@ -1,6 +1,4 @@
 import { NextResponse } from 'next/server';
-import { cookies } from 'next/headers';
-import { createServerClient } from '@supabase/ssr';
 import { getSupabaseAdmin } from '@/lib/supabase-admin';
 import { sendWelcomeEmail } from '@/lib/resend';
 
@@ -57,25 +55,15 @@ export async function POST(req: Request) {
       sendWelcomeEmail(email, fullName);
     }
 
-    const cookieStore = cookies();
-    const supabase = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      {
-        cookies: {
-          getAll() { return cookieStore.getAll(); },
-          setAll(cookiesToSet) {
-            cookiesToSet.forEach(({ name, value, options }) => {
-              cookieStore.set(name, value, options);
-            });
-          },
-        },
+    const { data: signIn } = await supabaseAdmin.auth.signInWithPassword({ email, password });
+
+    return NextResponse.json({
+      user: authData.user,
+      session: {
+        access_token: signIn?.session?.access_token,
+        refresh_token: signIn?.session?.refresh_token,
       },
-    );
-
-    await supabase.auth.signInWithPassword({ email, password });
-
-    return NextResponse.json({ user: authData.user });
+    });
   } catch (err) {
     console.error('Signup error:', err);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });

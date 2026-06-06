@@ -32,7 +32,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: error.message }, { status: 401 });
     }
 
-    return NextResponse.json({ user: data.user });
+    return NextResponse.json({ user: data.user, session: { access_token: data.session?.access_token, refresh_token: data.session?.refresh_token } });
   } catch (err) {
     console.error('Login error:', err);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });

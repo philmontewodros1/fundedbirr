@@ -3,6 +3,12 @@
 import Link from 'next/link';
 import { useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { createBrowserClient } from '@supabase/ssr';
+
+const supabase = createBrowserClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+);
 
 function RegisterForm() {
   const router = useRouter();
@@ -36,6 +42,13 @@ function RegisterForm() {
       if (!res.ok) {
         setError(data.error || 'Registration failed');
         return;
+      }
+
+      if (data.session) {
+        await supabase.auth.setSession({
+          access_token: data.session.access_token,
+          refresh_token: data.session.refresh_token,
+        });
       }
 
       router.push('/dashboard');
