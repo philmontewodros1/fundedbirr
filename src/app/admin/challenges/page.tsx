@@ -10,7 +10,7 @@ interface Challenge {
   virtual_balance: number;
   phase: number;
   status: string;
-  current_profit: number;
+  current_balance: number;
   started_at: string;
 }
 
@@ -70,8 +70,8 @@ export default function AdminChallengesPage() {
             <div style={{ fontFamily: "'Syne', sans-serif", fontWeight: 600 }}>{c.account_size}</div>
             <div style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>${c.virtual_balance.toLocaleString()}</div>
             <div>Phase {c.phase}</div>
-            <div style={{ color: c.current_profit >= 0 ? 'var(--green-light)' : '#ff6b6b' }}>
-              {c.current_profit >= 0 ? '+' : ''}{c.current_profit}
+            <div style={{ color: (c.current_balance ?? c.virtual_balance) - c.virtual_balance >= 0 ? 'var(--green-light)' : '#ff6b6b' }}>
+              {((c.current_balance ?? c.virtual_balance) - c.virtual_balance) >= 0 ? '+' : ''}{((c.current_balance ?? c.virtual_balance) - c.virtual_balance).toFixed(2)}
             </div>
             <div>
               <span style={{

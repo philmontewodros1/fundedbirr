@@ -13,9 +13,8 @@ interface Challenge {
   profit_target: number;
   daily_loss_limit: number;
   max_loss_limit: number;
-  current_profit: number;
-  current_drawdown: number;
-  trading_days: number;
+  current_balance: number;
+  trading_days_count: number;
   started_at: string;
 }
 
@@ -66,7 +65,11 @@ export default function ChallengeDetailPage() {
     'Consistency rule: no single day >50% of total profit',
   ];
 
-  const profitPct = Math.round((challenge.current_profit / challenge.virtual_balance) * 100);
+  const currentBalance = challenge.current_balance ?? challenge.virtual_balance;
+  const profit = currentBalance - challenge.virtual_balance;
+  const profitPct = Math.round((profit / challenge.virtual_balance) * 100);
+  const drawdown = Math.max(0, (challenge.virtual_balance - currentBalance) / challenge.virtual_balance * 100);
+  const tradingDays = challenge.trading_days_count ?? 0;
 
   return (
     <section style={{ padding: '3rem 2rem', maxWidth: '800px', margin: '0 auto' }}>
@@ -123,9 +126,9 @@ export default function ChallengeDetailPage() {
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', fontSize: '0.85rem', color: 'var(--text-muted)' }}>
           <div>Account size: <span style={{ color: 'var(--text)' }}>${challenge.virtual_balance.toLocaleString()}</span></div>
-          <div>Current P&L: <span style={{ color: challenge.current_profit >= 0 ? 'var(--green-light)' : '#ff6b6b' }}>{challenge.current_profit >= 0 ? '+' : ''}{challenge.current_profit}</span></div>
-          <div>Drawdown: <span style={{ color: 'var(--text)' }}>{challenge.current_drawdown}%</span></div>
-          <div>Trading days: <span style={{ color: 'var(--text)' }}>{challenge.trading_days}</span></div>
+          <div>Current P&L: <span style={{ color: profit >= 0 ? 'var(--green-light)' : '#ff6b6b' }}>{profit >= 0 ? '+' : ''}{profit.toFixed(2)}</span></div>
+          <div>Drawdown: <span style={{ color: 'var(--text)' }}>{drawdown.toFixed(2)}%</span></div>
+          <div>Trading days: <span style={{ color: 'var(--text)' }}>{tradingDays}</span></div>
         </div>
       </div>
     </section>

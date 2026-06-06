@@ -10,7 +10,7 @@ interface Challenge {
   virtual_balance: number;
   phase: number;
   status: string;
-  current_profit: number;
+  current_balance: number;
   started_at: string;
   completed_at: string;
 }
@@ -76,8 +76,8 @@ export default function HistoryPage() {
                 </div>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                <span style={{ color: c.current_profit >= 0 ? 'var(--green-light)' : '#ff6b6b', fontFamily: "'Syne', sans-serif", fontWeight: 600 }}>
-                  {c.current_profit >= 0 ? '+' : ''}{c.current_profit}
+                <span style={{ color: (c.current_balance ?? c.virtual_balance) - c.virtual_balance >= 0 ? 'var(--green-light)' : '#ff6b6b', fontFamily: "'Syne', sans-serif", fontWeight: 600 }}>
+                  {((c.current_balance ?? c.virtual_balance) - c.virtual_balance) >= 0 ? '+' : ''}{((c.current_balance ?? c.virtual_balance) - c.virtual_balance).toFixed(2)}
                 </span>
                 <span style={{
                   fontSize: '0.7rem', padding: '3px 10px', borderRadius: '100px',

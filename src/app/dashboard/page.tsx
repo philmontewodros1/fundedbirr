@@ -8,14 +8,15 @@ interface Challenge {
   id: string;
   account_size: string;
   virtual_balance: number;
+  current_balance?: number;
+  current_equity?: number;
+  daily_start_equity?: number;
   phase: number;
   status: string;
   profit_target: number;
   daily_loss_limit: number;
   max_loss_limit: number;
-  current_profit: number;
-  current_drawdown: number;
-  trading_days: number;
+  trading_days_count?: number;
   started_at: string;
 }
 
@@ -98,8 +99,9 @@ export default function DashboardPage() {
     );
   }
 
-  const profitPct = challenge ? Math.round((challenge.current_profit / challenge.virtual_balance) * 100) : 0;
-  const drawdownPct = challenge ? Math.round(challenge.current_drawdown) : 0;
+  const curBalance = challenge?.current_balance ?? challenge?.virtual_balance ?? 0
+  const profitPct = challenge ? Math.round(((curBalance - challenge.virtual_balance) / challenge.virtual_balance) * 100) : 0;
+  const drawdownPct = challenge ? Math.round(Math.max(0, ((challenge.virtual_balance - curBalance) / challenge.virtual_balance) * 100)) : 0;
 
   return (
     <section style={{ padding: '3rem 2rem', maxWidth: '1100px', margin: '0 auto' }}>
@@ -128,11 +130,11 @@ export default function DashboardPage() {
             display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '12px', marginBottom: '2rem',
           }}>
             {[
-              { label: 'Current Balance', val: `$${challenge.virtual_balance.toLocaleString()}` },
-              { label: 'Daily P&L', val: `$${challenge.current_profit >= 0 ? '+' : ''}${challenge.current_profit}`, pos: challenge.current_profit >= 0 },
-              { label: 'Trading Days', val: `${challenge.trading_days} / 3` },
-              { label: 'Daily Drawdown', val: `${drawdownPct}% / ${challenge.daily_loss_limit}%` },
-              { label: 'Max Drawdown', val: `${drawdownPct}% / ${challenge.max_loss_limit}%` },
+              { label: 'Current Balance', val: `$${curBalance.toLocaleString()}` },
+              { label: 'Current P&L', val: `${profitPct >= 0 ? '+' : ''}${profitPct}%`, pos: profitPct >= 0 },
+              { label: 'Trading Days', val: `${challenge.trading_days_count ?? 0} / 3` },
+              { label: 'Daily Drawdown', val: `${drawdownPct}% / ${challenge.daily_loss_limit ?? 5}%` },
+              { label: 'Max Drawdown', val: `${drawdownPct}% / ${challenge.max_loss_limit ?? 10}%` },
             ].map((m) => (
               <div key={m.label} style={{
                 background: 'var(--dark-2)', border: '1px solid rgba(255,255,255,0.06)',
