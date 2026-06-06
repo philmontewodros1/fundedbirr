@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
+import { createClient } from '@supabase/supabase-js';
 import { cookies } from 'next/headers';
 import { CHALLENGE_PRICES } from '@/lib/constants';
 
@@ -36,9 +37,15 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
     }
 
+    const admin = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!,
+      { auth: { autoRefreshToken: false, persistSession: false } },
+    );
+
     const amount = CHALLENGE_PRICES[challengeType];
 
-    const { data: payment, error } = await supabase
+    const { data: payment, error } = await admin
       .from('payments')
       .insert({
         user_id: user.id,
