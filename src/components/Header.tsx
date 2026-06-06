@@ -36,7 +36,7 @@ export default function Header() {
           </nav>
 
           <Link
-            href="/register"
+            href="/auth/register"
             className="hidden md:inline-block btn-primary px-5 py-2 rounded-lg text-sm no-underline"
           >
             Start Challenge →
@@ -68,7 +68,7 @@ export default function Header() {
             ))}
             <hr style={{ borderColor: 'rgba(255,255,255,0.05)' }} />
             <Link
-              href="/register"
+              href="/auth/register"
               onClick={() => setOpen(false)}
               className="block text-center btn-primary px-5 py-2 rounded-lg text-sm no-underline"
             >

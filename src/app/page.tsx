@@ -54,7 +54,7 @@ export default function HomePage() {
         </p>
 
         <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', marginBottom: '4rem' }}>
-          <Link href="/register" className="btn-primary no-underline px-8 py-3 rounded-lg text-base">
+          <Link href="/auth/register" className="btn-primary no-underline px-8 py-3 rounded-lg text-base">
             Start Challenge →
           </Link>
           <Link href="/free-trial" className="btn-secondary no-underline px-8 py-3 rounded-lg text-base">
@@ -273,7 +273,7 @@ export default function HomePage() {
             Join 1,240+ Ethiopian traders already on the platform.
           </p>
           <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center', flexWrap: 'wrap' }}>
-            <Link href="/register" className="btn-primary no-underline px-8 py-3 rounded-lg">
+            <Link href="/auth/register" className="btn-primary no-underline px-8 py-3 rounded-lg">
               Start Challenge →
             </Link>
             <a href="https://t.me/fundedbirr" target="_blank" rel="noopener noreferrer" className="btn-secondary no-underline px-8 py-3 rounded-lg">
