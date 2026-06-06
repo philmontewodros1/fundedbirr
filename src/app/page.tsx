@@ -1,0 +1,287 @@
+import Link from 'next/link';
+
+const ACCOUNTS = [
+  { name: 'Starter', size: '$5K', price: '1,500 ETB', target: '8%', daily: '4%', max: '8%', popular: false },
+  { name: 'Standard', size: '$10K', price: '3,000 ETB', target: '8%', daily: '4%', max: '8%', popular: false },
+  { name: 'Pro', size: '$25K', price: '7,000 ETB', target: '10%', daily: '5%', max: '10%', popular: true },
+  { name: 'Elite', size: '$50K', price: '12,000 ETB', target: '10%', daily: '5%', max: '10%', popular: false },
+  { name: 'Legend', size: '$100K', price: '20,000 ETB', target: '10%', daily: '5%', max: '10%', popular: false },
+];
+
+const LEADERBOARD = [
+  { rank: 1, name: 'AddisSniper', profit: '+18.4%', account: '$25K Pro', status: 'Funded', cls: 'rank-1' },
+  { rank: 2, name: 'GoldKing251', profit: '+14.2%', account: '$50K Elite', status: 'Funded', cls: 'rank-2' },
+  { rank: 3, name: 'EthioXAU', profit: '+11.7%', account: '$10K Standard', status: 'Funded', cls: 'rank-3' },
+  { rank: 4, name: 'BoleTrader', profit: '+9.8%', account: '$25K Pro', status: 'Phase 2', cls: '' },
+  { rank: 5, name: 'LalibeltFX', profit: '+8.3%', account: '$5K Starter', status: 'Phase 2', cls: '' },
+];
+
+const PAYOUTS = [
+  { name: 'AddisSniper', via: 'Telebirr · 3 days ago', amount: '+12,500 ETB', method: 'Verified Telebirr payout' },
+  { name: 'GoldKing251', via: 'CBE Birr · 1 week ago', amount: '+8,200 ETB', method: 'Verified CBE payout' },
+  { name: 'EthioXAU', via: 'Awash Bank · 2 weeks ago', amount: '+5,750 ETB', method: 'Verified bank payout' },
+  { name: 'BoleTrader', via: 'Telebirr · 2 weeks ago', amount: '+4,300 ETB', method: 'Verified Telebirr payout' },
+];
+
+export default function HomePage() {
+  return (
+    <>
+      {/* HERO */}
+      <section style={{ padding: '5rem 2rem 4rem', maxWidth: '1100px', margin: '0 auto' }}>
+        <div style={{
+          display: 'inline-flex', alignItems: 'center', gap: '8px',
+          background: 'rgba(201,145,42,0.1)', border: '1px solid rgba(201,145,42,0.25)',
+          color: 'var(--accent)', fontSize: '0.8rem', fontWeight: 500,
+          padding: '0.35rem 0.85rem', borderRadius: '100px', marginBottom: '2rem',
+          letterSpacing: '0.05em', textTransform: 'uppercase',
+        }}>
+          <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: 'var(--green-light)', animation: 'pulse-dot 2s infinite', display: 'inline-block' }} />
+          Ethiopia&apos;s First Funded Trader Platform
+        </div>
+
+        <h1 style={{
+          fontFamily: "'Syne', sans-serif", fontSize: 'clamp(2.8rem, 6vw, 5rem)',
+          fontWeight: 800, lineHeight: 1.05, letterSpacing: '-0.04em',
+          marginBottom: '1.5rem', maxWidth: '800px',
+        }}>
+          Get <span className="gold">Funded.</span><br />
+          Trade Gold.<br />
+          Earn in <span className="green">Birr.</span>
+        </h1>
+
+        <p style={{ fontSize: '1.15rem', color: 'var(--text-muted)', maxWidth: '520px', marginBottom: '2.5rem', fontWeight: 300, lineHeight: 1.7 }}>
+          Join Ethiopia&apos;s most trusted prop trading evaluation platform. Pass our challenge, earn ETB payouts via Telebirr and CBE — no tricks, no scams.
+        </p>
+
+        <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', marginBottom: '4rem' }}>
+          <Link href="/register" className="btn-primary no-underline px-8 py-3 rounded-lg text-base">
+            Start Challenge →
+          </Link>
+          <Link href="/free-trial" className="btn-secondary no-underline px-8 py-3 rounded-lg text-base">
+            Free Trial Account
+          </Link>
+        </div>
+
+        <div style={{
+          display: 'flex', gap: 0,
+          border: '1px solid rgba(201,145,42,0.15)', borderRadius: '12px',
+          overflow: 'hidden', background: 'var(--dark-2)',
+        }}>
+          {[
+            { num: '1,240+', label: 'Active traders' },
+            { num: 'ETB 4.2M', label: 'Total paid out' },
+            { num: '73%', label: 'Phase 1 pass rate' },
+            { num: '48h', label: 'Payout processing' },
+          ].map((s, i) => (
+            <div key={i} style={{
+              flex: 1, padding: '1.5rem 1.25rem',
+              borderRight: i < 3 ? '1px solid rgba(201,145,42,0.1)' : 'none',
+              textAlign: 'center',
+            }}>
+              <span style={{
+                fontFamily: "'Syne', sans-serif", fontSize: '1.8rem', fontWeight: 800,
+                color: 'var(--accent)', display: 'block', letterSpacing: '-0.03em',
+              }}>{s.num}</span>
+              <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: '2px' }}>{s.label}</div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* HOW IT WORKS */}
+      <section className="section" id="how" style={{ padding: '5rem 2rem', maxWidth: '1100px', margin: '0 auto' }}>
+        <div className="section-label">Process</div>
+        <div className="section-title" style={{ fontFamily: "'Syne', sans-serif", fontSize: 'clamp(1.6rem, 3.5vw, 2.5rem)', fontWeight: 800, letterSpacing: '-0.04em', lineHeight: 1.1, marginBottom: '0.75rem' }}>
+          Three steps to funded
+        </div>
+        <div style={{
+          display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1px',
+          background: 'rgba(201,145,42,0.12)', border: '1px solid rgba(201,145,42,0.12)',
+          borderRadius: '14px', overflow: 'hidden', marginTop: '3rem',
+        }}>
+          {[
+            { num: '01', icon: '🎯', title: 'Buy a challenge', text: 'Choose your account size. Pay in ETB via Telebirr or CBE. Instant account activation on MT5.' },
+            { num: '02', icon: '📈', title: 'Pass evaluation', text: 'Hit your profit target in Phase 1 & Phase 2 while respecting drawdown rules. Minimum 3 trading days.' },
+            { num: '03', icon: '💰', title: 'Earn ETB payouts', text: 'Receive your earnings directly to Telebirr or CBE. Scale up with consistent performance.' },
+          ].map((s) => (
+            <div key={s.num} style={{ background: 'var(--dark-2)', padding: '2.25rem 1.75rem' }}>
+              <div style={{
+                fontFamily: "'Syne', sans-serif", fontSize: '3.5rem', fontWeight: 800,
+                color: 'rgba(201,145,42,0.12)', lineHeight: 1, marginBottom: '1.25rem',
+                letterSpacing: '-0.06em',
+              }}>{s.num}</div>
+              <div style={{
+                width: '40px', height: '40px', borderRadius: '10px',
+                background: 'rgba(201,145,42,0.12)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                marginBottom: '1rem', fontSize: '1.2rem',
+              }}>{s.icon}</div>
+              <div style={{ fontFamily: "'Syne', sans-serif", fontWeight: 700, fontSize: '1.05rem', marginBottom: '0.6rem', letterSpacing: '-0.02em' }}>{s.title}</div>
+              <div style={{ fontSize: '0.875rem', color: 'var(--text-muted)', lineHeight: 1.6 }}>{s.text}</div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* ACCOUNTS */}
+      <section className="section" id="accounts" style={{ padding: '5rem 2rem', maxWidth: '1100px', margin: '0 auto' }}>
+        <div className="section-label">Account sizes</div>
+        <div className="section-title" style={{ fontFamily: "'Syne', sans-serif", fontSize: 'clamp(1.6rem, 3.5vw, 2.5rem)', fontWeight: 800, letterSpacing: '-0.04em', lineHeight: 1.1, marginBottom: '0.75rem' }}>
+          Pick your level
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '10px', marginTop: '3rem' }}>
+          {ACCOUNTS.map((a) => (
+            <div key={a.name} className="hover-card" style={{
+              background: 'var(--dark-2)',
+              border: a.popular ? '1px solid rgba(201,145,42,0.4)' : '1px solid rgba(255,255,255,0.06)',
+              borderRadius: '12px', padding: '1.5rem 1rem', textAlign: 'center',
+              position: 'relative', cursor: 'pointer',
+            }}>
+              {a.popular && (
+                <div style={{
+                  position: 'absolute', top: '-10px', left: '50%', transform: 'translateX(-50%)',
+                  background: 'var(--gold)', color: 'var(--dark)', fontSize: '0.65rem',
+                  fontWeight: 700, padding: '3px 12px', borderRadius: '100px',
+                  whiteSpace: 'nowrap', fontFamily: "'Syne', sans-serif",
+                  letterSpacing: '0.05em', textTransform: 'uppercase',
+                }}>
+                  Most popular
+                </div>
+              )}
+              <div style={{ fontFamily: "'Syne', sans-serif", fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-muted)', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: '0.75rem' }}>
+                {a.name}
+              </div>
+              <div style={{ fontFamily: "'Syne', sans-serif", fontSize: '1.5rem', fontWeight: 800, color: 'var(--text)', letterSpacing: '-0.04em', marginBottom: '0.35rem' }}>
+                {a.size}
+              </div>
+              <div style={{ fontSize: '0.85rem', color: 'var(--accent)', fontWeight: 500, marginBottom: '1.25rem' }}>
+                {a.price}
+              </div>
+              <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                {[
+                  { label: 'Profit Target', val: a.target },
+                  { label: 'Daily Loss', val: a.daily },
+                  { label: 'Max Loss', val: a.max },
+                ].map((r, i) => (
+                  <div key={r.label} style={{ padding: '4px 0', borderTop: i > 0 ? '1px solid rgba(255,255,255,0.05)' : 'none' }}>
+                    <div style={{ color: 'rgba(255,255,255,0.35)', fontSize: '0.7rem', marginBottom: '1px' }}>{r.label}</div>
+                    {r.val}
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* LEADERBOARD */}
+      <section className="section" id="leaderboard" style={{ padding: '5rem 2rem', maxWidth: '1100px', margin: '0 auto' }}>
+        <div className="section-label">Live leaderboard</div>
+        <div className="section-title" style={{ fontFamily: "'Syne', sans-serif", fontSize: 'clamp(1.6rem, 3.5vw, 2.5rem)', fontWeight: 800, letterSpacing: '-0.04em', lineHeight: 1.1, marginBottom: '0.75rem' }}>
+          Ethiopia&apos;s top traders
+        </div>
+        <div style={{ marginTop: '3rem', background: 'var(--dark-2)', border: '1px solid rgba(201,145,42,0.15)', borderRadius: '14px', overflow: 'hidden' }}>
+          <div style={{
+            display: 'grid', gridTemplateColumns: '3rem 1fr 1fr 1fr 1fr',
+            padding: '1rem 1.5rem', fontSize: '0.72rem', textTransform: 'uppercase',
+            letterSpacing: '0.08em', color: 'var(--text-muted)',
+            borderBottom: '1px solid rgba(201,145,42,0.1)', fontWeight: 500,
+          }}>
+            <div>Rank</div><div>Trader</div><div>Profit</div><div>Account</div><div>Status</div>
+          </div>
+          {LEADERBOARD.map((t) => (
+            <div key={t.rank} className="hover-row" style={{
+              display: 'grid', gridTemplateColumns: '3rem 1fr 1fr 1fr 1fr',
+              padding: '1rem 1.5rem', alignItems: 'center',
+              borderBottom: t.rank < 5 ? '1px solid rgba(255,255,255,0.04)' : 'none',
+              fontSize: '0.875rem',
+            }}>
+              <div style={{
+                fontFamily: "'Syne', sans-serif", fontWeight: 800, fontSize: '0.9rem',
+                color: t.cls === 'rank-1' ? '#FFD700' : t.cls === 'rank-2' ? '#C0C0C0' : t.cls === 'rank-3' ? '#CD7F32' : 'var(--text-muted)',
+              }}>
+                {String(t.rank).padStart(2, '0')}
+              </div>
+              <div>{t.name}</div>
+              <div style={{ color: 'var(--green-light)', fontWeight: 500, fontFamily: "'Syne', sans-serif" }}>{t.profit}</div>
+              <div style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>{t.account}</div>
+              <div>
+                {t.status === 'Funded' ? (
+                  <span style={{
+                    display: 'inline-flex', alignItems: 'center',
+                    background: 'rgba(29,122,74,0.15)', color: 'var(--green-light)',
+                    fontSize: '0.7rem', padding: '3px 10px', borderRadius: '100px',
+                    border: '1px solid rgba(29,122,74,0.25)',
+                  }}>
+                    ✓ Funded
+                  </span>
+                ) : (
+                  <span style={{
+                    display: 'inline-flex', alignItems: 'center',
+                    background: 'rgba(201,145,42,0.1)', color: 'var(--accent)',
+                    fontSize: '0.7rem', padding: '3px 10px', borderRadius: '100px',
+                    border: '1px solid rgba(201,145,42,0.2)',
+                  }}>
+                    Phase 2
+                  </span>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* PAYOUTS */}
+      <section className="section" id="payouts" style={{ padding: '5rem 2rem', maxWidth: '1100px', margin: '0 auto' }}>
+        <div className="section-label">Proof of payouts</div>
+        <div className="section-title" style={{ fontFamily: "'Syne', sans-serif", fontSize: 'clamp(1.6rem, 3.5vw, 2.5rem)', fontWeight: 800, letterSpacing: '-0.04em', lineHeight: 1.1, marginBottom: '0.75rem' }}>
+          Real payouts. Real traders.
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem', marginTop: '3rem' }}>
+          {PAYOUTS.map((p) => (
+            <div key={p.name} style={{ background: 'var(--dark-2)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '14px', padding: '2rem' }}>
+              <div style={{ fontSize: '0.875rem', fontWeight: 500 }}>{p.name}</div>
+              <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginBottom: '1rem' }}>{p.via}</div>
+              <div style={{
+                fontFamily: "'Syne', sans-serif", fontSize: '2.2rem', fontWeight: 800,
+                letterSpacing: '-0.04em', color: 'var(--green-light)', margin: '0.5rem 0 0.25rem',
+              }}>{p.amount}</div>
+              <div style={{
+                display: 'inline-flex', alignItems: 'center', gap: '6px',
+                background: 'rgba(29,122,74,0.1)', border: '1px solid rgba(29,122,74,0.2)',
+                color: 'var(--green-light)', fontSize: '0.75rem', padding: '4px 12px', borderRadius: '6px',
+              }}>✓ {p.method}</div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* CTA */}
+      <section style={{ padding: '5rem 2rem', maxWidth: '1100px', margin: '0 auto' }}>
+        <div style={{
+          background: 'var(--dark-3)', border: '1px solid rgba(201,145,42,0.2)',
+          borderRadius: '20px', padding: '4rem 3rem', textAlign: 'center',
+        }}>
+          <h2 style={{
+            fontFamily: "'Syne', sans-serif", fontSize: 'clamp(1.8rem, 4vw, 3rem)',
+            fontWeight: 800, letterSpacing: '-0.04em', marginBottom: '1rem', lineHeight: 1.1,
+          }}>
+            Ready to become a<br />
+            <span style={{ color: 'var(--gold-light)' }}>verified FundedBirr trader?</span>
+          </h2>
+          <p style={{ color: 'var(--text-muted)', marginBottom: '2rem' }}>
+            Join 1,240+ Ethiopian traders already on the platform.
+          </p>
+          <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center', flexWrap: 'wrap' }}>
+            <Link href="/register" className="btn-primary no-underline px-8 py-3 rounded-lg">
+              Start Challenge →
+            </Link>
+            <a href="https://t.me/fundedbirr" target="_blank" rel="noopener noreferrer" className="btn-secondary no-underline px-8 py-3 rounded-lg">
+              Join Telegram
+            </a>
+          </div>
+        </div>
+      </section>
+    </>
+  );
+}
