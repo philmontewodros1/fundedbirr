@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { PLAN_LABELS } from '@/lib/constants';
 
 interface Payout {
   id: string;
@@ -11,6 +12,7 @@ interface Payout {
   account_number: string;
   status: string;
   requested_at: string;
+  users: { full_name: string; email: string } | null;
 }
 
 interface TelebirrPayment {
@@ -31,6 +33,7 @@ export default function AdminPayoutsPage() {
   const [payments, setPayments] = useState<TelebirrPayment[]>([]);
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState<'payments' | 'payouts'>('payments');
+  const [rejectReason, setRejectReason] = useState<Record<string, string>>({});
 
   async function load() {
     const [payoutRes, paymentRes] = await Promise.all([
@@ -69,10 +72,14 @@ export default function AdminPayoutsPage() {
   }
 
   async function updatePayoutStatus(id: string, status: string) {
+    const body: Record<string, any> = { id, status };
+    if (status === 'rejected' && rejectReason[id]) {
+      body.rejectionReason = rejectReason[id];
+    }
     await fetch('/api/admin/payouts', {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id, status }),
+      body: JSON.stringify(body),
     });
     load();
   }
@@ -82,7 +89,7 @@ export default function AdminPayoutsPage() {
   }
 
   return (
-    <section style={{ padding: '3rem 2rem', maxWidth: '1100px', margin: '0 auto' }}>
+    <section style={{ padding: '3rem 2rem', maxWidth: '1200px', margin: '0 auto' }}>
       <Link href="/admin" style={{ color: 'var(--text-muted)', fontSize: '0.85rem', textDecoration: 'none', display: 'block', marginBottom: '2rem' }}>
         ← Back to Admin
       </Link>
@@ -91,7 +98,6 @@ export default function AdminPayoutsPage() {
         Payment Management
       </h1>
 
-      {/* Tabs */}
       <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '2rem' }}>
         <button onClick={() => setTab('payments')} style={{
           padding: '0.5rem 1rem', borderRadius: '8px', border: 'none', cursor: 'pointer',
@@ -111,7 +117,6 @@ export default function AdminPayoutsPage() {
         </button>
       </div>
 
-      {/* Telebirr Payments Tab */}
       {tab === 'payments' && (
         <div style={{ background: 'var(--dark-2)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '14px', overflow: 'hidden' }}>
           <div style={{
@@ -132,7 +137,9 @@ export default function AdminPayoutsPage() {
                 <div style={{ fontWeight: 500 }}>{p.users?.full_name || 'Unknown'}</div>
                 <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>{p.users?.email || ''}</div>
               </div>
-              <div style={{ color: 'var(--text-muted)', fontSize: '0.8rem', textTransform: 'capitalize' }}>{p.challenge_type}</div>
+              <div style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>
+                {PLAN_LABELS[p.challenge_type] || p.challenge_type}
+              </div>
               <div style={{ fontFamily: "'Syne', sans-serif", fontWeight: 600 }}>{p.amount_etb.toLocaleString()} ETB</div>
               <div>
                 <code style={{ fontSize: '0.75rem', background: 'var(--dark-3)', padding: '2px 6px', borderRadius: '4px' }}>{p.telebirr_tx_ref}</code>
@@ -172,25 +179,28 @@ export default function AdminPayoutsPage() {
         </div>
       )}
 
-      {/* Payout Requests Tab */}
       {tab === 'payouts' && (
         <div style={{ background: 'var(--dark-2)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '14px', overflow: 'hidden' }}>
           <div style={{
-            display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr 1.5fr',
+            display: 'grid', gridTemplateColumns: '1.2fr 1fr 1fr 1fr 1fr 1.5fr',
             padding: '0.85rem 1.25rem', fontSize: '0.72rem', textTransform: 'uppercase',
             letterSpacing: '0.08em', color: 'var(--text-muted)', borderBottom: '1px solid rgba(255,255,255,0.06)',
           }}>
-            <div>Amount</div><div>Method</div><div>Account</div><div>Status</div><div>Actions</div>
+            <div>Trader</div><div>Amount</div><div>Method</div><div>Account</div><div>Status</div><div>Actions</div>
           </div>
           {payouts.map((p) => (
             <div key={p.id} style={{
-              display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr 1.5fr',
+              display: 'grid', gridTemplateColumns: '1.2fr 1fr 1fr 1fr 1fr 1.5fr',
               padding: '0.85rem 1.25rem', fontSize: '0.85rem',
               borderBottom: '1px solid rgba(255,255,255,0.04)',
               alignItems: 'center',
             }}>
+              <div>
+                <div style={{ fontWeight: 500 }}>{p.users?.full_name || 'Unknown'}</div>
+                <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>{p.users?.email || ''}</div>
+              </div>
               <div style={{ fontFamily: "'Syne', sans-serif", fontWeight: 600 }}>{p.amount_etb.toLocaleString()} ETB</div>
-              <div style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>{p.method}</div>
+              <div style={{ color: 'var(--text-muted)', fontSize: '0.8rem', textTransform: 'capitalize' }}>{p.method}</div>
               <div style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>{p.account_number}</div>
               <div>
                 <span style={{
@@ -201,20 +211,30 @@ export default function AdminPayoutsPage() {
                   {p.status}
                 </span>
               </div>
-              <div style={{ display: 'flex', gap: '0.5rem' }}>
+              <div style={{ display: 'flex', gap: '0.5rem', flexDirection: 'column', alignItems: 'flex-start' }}>
                 {p.status === 'pending' && (
-                  <>
+                  <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
                     <button onClick={() => updatePayoutStatus(p.id, 'approved')} style={{
                       background: 'rgba(29,122,74,0.15)', color: 'var(--green-light)',
                       border: '1px solid rgba(29,122,74,0.25)', padding: '4px 12px',
                       borderRadius: '6px', cursor: 'pointer', fontSize: '0.75rem',
                     }}>Approve</button>
+                    <input
+                      placeholder="Reason (optional)"
+                      value={rejectReason[p.id] || ''}
+                      onChange={e => setRejectReason(prev => ({ ...prev, [p.id]: e.target.value }))}
+                      style={{
+                        width: '120px', padding: '3px 6px', fontSize: '0.7rem',
+                        background: 'var(--dark-3)', border: '1px solid rgba(255,255,255,0.1)',
+                        borderRadius: '4px', color: 'var(--text)',
+                      }}
+                    />
                     <button onClick={() => updatePayoutStatus(p.id, 'rejected')} style={{
                       background: 'rgba(255,107,107,0.1)', color: '#ff6b6b',
                       border: '1px solid rgba(255,107,107,0.2)', padding: '4px 12px',
                       borderRadius: '6px', cursor: 'pointer', fontSize: '0.75rem',
                     }}>Reject</button>
-                  </>
+                  </div>
                 )}
                 {p.status === 'approved' && (
                   <button onClick={() => updatePayoutStatus(p.id, 'paid')} style={{
@@ -222,6 +242,12 @@ export default function AdminPayoutsPage() {
                     border: '1px solid rgba(29,122,74,0.25)', padding: '4px 12px',
                     borderRadius: '6px', cursor: 'pointer', fontSize: '0.75rem',
                   }}>Mark Paid</button>
+                )}
+                {p.status === 'paid' && (
+                  <span style={{ fontSize: '0.7rem', color: 'var(--green-light)' }}>✓ Paid</span>
+                )}
+                {p.status === 'rejected' && (
+                  <span style={{ fontSize: '0.7rem', color: '#ff6b6b' }}>✗ Rejected</span>
                 )}
               </div>
             </div>

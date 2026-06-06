@@ -2,7 +2,7 @@ import Link from 'next/link';
 
 const ADMIN_LINKS = [
   { label: 'Traders', href: '/admin/traders', desc: 'All registered users, KYC status, active challenges' },
-  { label: 'Payouts', href: '/admin/payouts', desc: 'Approve/reject payout requests, mark as paid' },
+  { label: 'Payments', href: '/admin/payouts', desc: 'Telebirr payments + payout requests in one place' },
   { label: 'KYC', href: '/admin/kyc', desc: 'View uploaded ID documents, approve/reject' },
   { label: 'Challenges', href: '/admin/challenges', desc: 'All active challenges, manually pass/fail' },
 ];

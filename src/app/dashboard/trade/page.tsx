@@ -1,9 +1,7 @@
 'use client'
-// src/app/dashboard/trade/page.tsx
 
 import { useEffect, useRef, useState, useCallback } from 'react'
 
-// ── types ──────────────────────────────────────────────────────────────────
 interface Trade {
   id: string
   direction: 'buy' | 'sell'
@@ -27,9 +25,9 @@ interface Challenge {
   status: string
   account_size: string
   trading_days_count: number
+  phase: number
 }
 
-// ── helpers ────────────────────────────────────────────────────────────────
 const SPREAD = 0.30
 
 function calcUnrealizedPnl(trade: Trade, price: number) {
@@ -43,7 +41,6 @@ function pct(value: number, total: number) {
   return total > 0 ? Math.round((value / total) * 10000) / 100 : 0
 }
 
-// ── component ──────────────────────────────────────────────────────────────
 export default function TradePage() {
   const chartRef = useRef<HTMLDivElement>(null)
   const [tvReady, setTvReady] = useState(false)
@@ -58,13 +55,16 @@ export default function TradePage() {
   const [lotSize, setLotSize] = useState<number>(0.10)
   const [slInput, setSlInput] = useState<string>('')
   const [tpInput, setTpInput] = useState<string>('')
-  const [overlay, setOverlay] = useState<null | 'failed' | 'passed'>(null)
+  const [overlay, setOverlay] = useState<null | 'failed' | 'passed' | 'phase2'>(null)
   const [failReason, setFailReason] = useState<string>('')
   const [loading, setLoading] = useState(false)
   const [userId, setUserId] = useState<string>('')
   const [error, setError] = useState<string>('')
 
-  // ── fetch user session ──────────────────────────────────────────────────
+  const phase = challenge?.phase || 1
+  const profitTarget = phase === 1 ? 10 : 5
+  const minDays = phase === 1 ? 5 : 3
+
   useEffect(() => {
     import('@supabase/ssr').then(({ createBrowserClient }) => {
       const supabase = createBrowserClient(
@@ -77,7 +77,6 @@ export default function TradePage() {
     })
   }, [])
 
-  // ── fetch challenge ─────────────────────────────────────────────────────
   const fetchChallenge = useCallback(async () => {
     if (!userId) return
     const res = await fetch(`/api/dashboard`)
@@ -89,7 +88,6 @@ export default function TradePage() {
     fetchChallenge()
   }, [fetchChallenge])
 
-  // ── fetch positions ─────────────────────────────────────────────────────
   const fetchPositions = useCallback(async () => {
     if (!userId || !challenge?.id) return
     const res = await fetch(
@@ -113,7 +111,6 @@ export default function TradePage() {
     fetchHistory()
   }, [fetchPositions, fetchHistory])
 
-  // ── init TradingView chart ──────────────────────────────────────────────
   useEffect(() => {
     if (!chartRef.current || tvReady) return
     const id = 'tv_chart_' + Math.random().toString(36).slice(2, 8)
@@ -160,7 +157,6 @@ export default function TradePage() {
     }
   }, [tvReady])
 
-  // ── gold price polling ──────────────────────────────────────────────────
   useEffect(() => {
     const poll = async () => {
       try {
@@ -172,7 +168,6 @@ export default function TradePage() {
         setBid(p)
         setAsk(Math.round((p + SPREAD) * 100) / 100)
 
-        // Check SL/TP on open positions
         setOpenTrades((prev) => {
           prev.forEach((t) => {
             if (t.sl || t.tp) {
@@ -194,7 +189,6 @@ export default function TradePage() {
     return () => clearInterval(iv)
   }, [])
 
-  // ── live equity calc ────────────────────────────────────────────────────
   const liveEquity = challenge
     ? (challenge.current_balance || challenge.virtual_balance) +
       openTrades.reduce((sum, t) => sum + calcUnrealizedPnl(t, price), 0)
@@ -210,7 +204,6 @@ export default function TradePage() {
   )
   const tradingDays = challenge?.trading_days_count || 0
 
-  // ── open trade ──────────────────────────────────────────────────────────
   const openTrade = async (direction: 'buy' | 'sell') => {
     if (!challenge || !userId) return setError('No active challenge')
     if (!price) return setError('Price not available')
@@ -239,7 +232,6 @@ export default function TradePage() {
     }
   }
 
-  // ── close trade ─────────────────────────────────────────────────────────
   const closeTrade = async (tradeId: string, closePrice?: number) => {
     if (!userId) return
     const exitPrice = closePrice || price
@@ -259,17 +251,17 @@ export default function TradePage() {
       if (data.challenge_status === 'failed') {
         setFailReason(data.fail_reason || 'Drawdown limit reached')
         setOverlay('failed')
+      } else if (data.challenge_status === 'phase2') {
+        setOverlay('phase2')
       } else if (data.challenge_status === 'passed') {
         setOverlay('passed')
       }
     } catch (_) {}
   }
 
-  // ── bar colors ──────────────────────────────────────────────────────────
   const ddColor = (pct: number) =>
     pct >= 4 ? '#E84B4B' : pct >= 3 ? '#E8B84B' : '#28A86A'
 
-  // ──────────────────────────────────────────────────────────────────────
   return (
     <div style={{ background: '#0D0F0A', minHeight: '100vh', color: '#F5F2E8', fontFamily: 'DM Sans, sans-serif' }}>
 
@@ -281,6 +273,15 @@ export default function TradePage() {
             Funded<span style={{ color: '#28A86A' }}>Birr</span> Trader
           </span>
           <span style={{ background: '#1E2218', padding: '0.2rem 0.75rem', borderRadius: '100px', fontSize: '0.8rem', color: '#E8B84B' }}>XAUUSD</span>
+          {challenge && (
+            <span style={{
+              background: phase === 1 ? '#2A2010' : '#102A1A',
+              color: phase === 1 ? '#E8B84B' : '#28A86A',
+              padding: '0.2rem 0.75rem', borderRadius: '100px', fontSize: '0.75rem', fontWeight: 700,
+            }}>
+              Phase {phase}
+            </span>
+          )}
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '2rem', fontSize: '0.85rem' }}>
           <span>Live: <strong style={{ fontFamily: 'Syne, sans-serif', color: '#F0C060' }}>${price.toFixed(2)}</strong></span>
@@ -298,13 +299,10 @@ export default function TradePage() {
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 300px', gap: 0, height: 'calc(100vh - 52px)' }}>
 
-        {/* LEFT — CHART + TABLES */}
+        {/* LEFT */}
         <div style={{ display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-
-          {/* Chart */}
           <div ref={chartRef} style={{ width: '100%', flex: '0 0 380px', background: '#151810' }} />
 
-          {/* Tabs */}
           <div style={{ background: '#151810', borderTop: '1px solid #1E2218', padding: '0 1.5rem', display: 'flex', gap: '1rem' }}>
             {(['positions', 'history'] as const).map((t) => (
               <button key={t} onClick={() => setTab(t)} style={{ background: 'none', border: 'none', color: tab === t ? '#F0C060' : '#9A9880', fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: '0.85rem', padding: '0.75rem 0', borderBottom: tab === t ? '2px solid #F0C060' : '2px solid transparent', cursor: 'pointer', textTransform: 'capitalize' }}>
@@ -313,7 +311,6 @@ export default function TradePage() {
             ))}
           </div>
 
-          {/* Table */}
           <div style={{ flex: 1, overflow: 'auto', background: '#0D0F0A' }}>
             {tab === 'positions' ? (
               openTrades.length === 0 ? (
@@ -383,10 +380,9 @@ export default function TradePage() {
           </div>
         </div>
 
-        {/* RIGHT — ORDER PANEL */}
+        {/* RIGHT */}
         <div style={{ background: '#151810', borderLeft: '1px solid #1E2218', display: 'flex', flexDirection: 'column', overflow: 'auto' }}>
 
-          {/* Price display */}
           <div style={{ padding: '1.25rem', borderBottom: '1px solid #1E2218' }}>
             <div style={{ fontSize: '0.7rem', color: '#9A9880', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '0.5rem' }}>XAUUSD · Gold</div>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1rem' }}>
@@ -400,7 +396,6 @@ export default function TradePage() {
               </div>
             </div>
 
-            {/* BUY / SELL buttons */}
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '1rem' }}>
               <button onClick={() => openTrade('buy')} disabled={loading || !price}
                 style={{ background: '#1D7A4A', color: '#fff', border: 'none', borderRadius: '8px', padding: '0.85rem', fontFamily: 'Syne, sans-serif', fontWeight: 800, fontSize: '0.95rem', cursor: 'pointer', opacity: loading ? 0.6 : 1 }}>
@@ -412,7 +407,6 @@ export default function TradePage() {
               </button>
             </div>
 
-            {/* Lot size */}
             <div style={{ marginBottom: '0.75rem' }}>
               <div style={{ fontSize: '0.7rem', color: '#9A9880', marginBottom: '0.4rem' }}>Lot Size</div>
               <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap', marginBottom: '0.4rem' }}>
@@ -427,7 +421,6 @@ export default function TradePage() {
                 style={{ width: '100%', background: '#1E2218', border: '1px solid #272C1F', borderRadius: '6px', padding: '0.4rem 0.6rem', color: '#F5F2E8', fontSize: '0.85rem', fontFamily: 'Syne, sans-serif' }} />
             </div>
 
-            {/* SL / TP */}
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '0.5rem' }}>
               <div>
                 <div style={{ fontSize: '0.7rem', color: '#9A9880', marginBottom: '0.3rem' }}>Stop Loss</div>
@@ -446,12 +439,15 @@ export default function TradePage() {
 
           {/* Account stats */}
           <div style={{ padding: '1.25rem', borderBottom: '1px solid #1E2218' }}>
-            <div style={{ fontSize: '0.7rem', color: '#9A9880', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '1rem' }}>Account Stats</div>
+            <div style={{ fontSize: '0.7rem', color: '#9A9880', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '1rem' }}>
+              Phase {phase} — {' '}
+              <span style={{ color: '#F0C060' }}>{profitTarget}% target</span>
+            </div>
 
             {[
               { label: 'Daily DD', value: dailyDDPct, max: 5, suffix: '%' },
               { label: 'Max DD', value: maxDDPct, max: 10, suffix: '%' },
-              { label: 'Profit', value: profitPct, max: 10, suffix: '%', positive: true }
+              { label: 'Profit', value: profitPct, max: profitTarget, suffix: '%', positive: true }
             ].map(({ label, value, max, suffix, positive }) => (
               <div key={label} style={{ marginBottom: '0.85rem' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.3rem' }}>
@@ -475,21 +471,30 @@ export default function TradePage() {
               </div>
               <div style={{ background: '#1E2218', borderRadius: '8px', padding: '0.75rem' }}>
                 <div style={{ fontSize: '0.65rem', color: '#9A9880' }}>Min Days</div>
-                <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 800, fontSize: '0.9rem', color: tradingDays >= 5 ? '#28A86A' : '#E8B84B' }}>
-                  {tradingDays}/5
+                <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 800, fontSize: '0.9rem', color: tradingDays >= minDays ? '#28A86A' : '#E8B84B' }}>
+                  {tradingDays}/{minDays}
                 </div>
+              </div>
+            </div>
+
+            <div style={{
+              background: '#1E2218', borderRadius: '8px', padding: '0.75rem', marginTop: '0.75rem',
+            }}>
+              <div style={{ fontSize: '0.65rem', color: '#9A9880', marginBottom: '0.25rem' }}>Consistency Rule</div>
+              <div style={{ fontSize: '0.78rem', color: '#9A9880' }}>
+                No day &gt; 50% of total profits
               </div>
             </div>
           </div>
 
-          {/* Quick help */}
           <div style={{ padding: '1rem 1.25rem' }}>
             <div style={{ fontSize: '0.72rem', color: '#9A9880', lineHeight: 1.6 }}>
-              <strong style={{ color: '#E8B84B', display: 'block', marginBottom: '0.3rem' }}>Challenge Rules</strong>
-              🎯 Profit target: 10%<br />
+              <strong style={{ color: '#E8B84B', display: 'block', marginBottom: '0.3rem' }}>Phase {phase} Rules</strong>
+              🎯 Profit target: {profitTarget}%<br />
               📉 Daily drawdown: max 5%<br />
               📉 Max drawdown: max 10%<br />
-              📅 Min trading days: 5<br />
+              📅 Min trading days: {minDays}<br />
+              📊 Consistency: ≤50% per day<br />
               💰 Spread: 0.30 pts
             </div>
           </div>
@@ -511,17 +516,45 @@ export default function TradePage() {
         </div>
       )}
 
-      {/* PASSED OVERLAY */}
+      {/* PHASE 1 → PHASE 2 OVERLAY */}
+      {overlay === 'phase2' && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
+          <div style={{ background: '#0A1A0F', border: '1px solid #C9912A', borderRadius: '20px', padding: '3rem', textAlign: 'center', maxWidth: '420px' }}>
+            <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>🏆</div>
+            <h2 style={{ fontFamily: 'Syne, sans-serif', fontWeight: 800, fontSize: '1.8rem', color: '#F0C060', marginBottom: '0.75rem' }}>Phase 1 Passed!</h2>
+            <p style={{ color: '#9A9880', marginBottom: '0.5rem', fontSize: '0.9rem' }}>
+              You hit the 10% target in {tradingDays} trading days.
+            </p>
+            <p style={{ color: '#28A86A', marginBottom: '2rem', fontSize: '0.9rem', fontWeight: 600 }}>
+              Moving to Phase 2 — Verification
+            </p>
+            <p style={{ color: '#9A9880', marginBottom: '2rem', fontSize: '0.82rem' }}>
+              Your balance has reset. Now grow 5% while respecting the same risk rules.
+              Minimum 3 trading days.
+            </p>
+            <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center' }}>
+              <a href="/dashboard/trade" style={{ background: '#C9912A', color: '#0D0F0A', padding: '0.75rem 1.5rem', borderRadius: '8px', fontFamily: 'Syne, sans-serif', fontWeight: 700, textDecoration: 'none', fontSize: '0.9rem' }}>Continue Trading</a>
+              <a href="/dashboard" style={{ background: '#1E2218', color: '#F5F2E8', padding: '0.75rem 1.5rem', borderRadius: '8px', fontFamily: 'Syne, sans-serif', fontWeight: 700, textDecoration: 'none', fontSize: '0.9rem' }}>Dashboard</a>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* FUNDED OVERLAY */}
       {overlay === 'passed' && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
-          <div style={{ background: '#0A1A0F', border: '1px solid #28A86A', borderRadius: '20px', padding: '3rem', textAlign: 'center', maxWidth: '400px' }}>
+          <div style={{ background: '#0A1A0F', border: '1px solid #28A86A', borderRadius: '20px', padding: '3rem', textAlign: 'center', maxWidth: '420px' }}>
             <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>🏆</div>
-            <h2 style={{ fontFamily: 'Syne, sans-serif', fontWeight: 800, fontSize: '1.8rem', color: '#F0C060', marginBottom: '0.75rem' }}>Challenge Passed!</h2>
-            <p style={{ color: '#9A9880', marginBottom: '0.5rem', fontSize: '0.9rem' }}>You hit the 10% profit target in {tradingDays} trading days.</p>
-            <p style={{ color: '#9A9880', marginBottom: '2rem', fontSize: '0.85rem' }}>Your account is under review for ETB payout.</p>
+            <h2 style={{ fontFamily: 'Syne, sans-serif', fontWeight: 800, fontSize: '1.8rem', color: '#F0C060', marginBottom: '0.75rem' }}>You Are Funded!</h2>
+            <p style={{ color: '#9A9880', marginBottom: '0.5rem', fontSize: '0.9rem' }}>
+              Both phases complete. You are now a FundedBirr trader.
+            </p>
+            <p style={{ color: '#28A86A', marginBottom: '1.5rem', fontSize: '0.9rem', fontWeight: 600 }}>
+              80% profit split — payouts every 14 days
+            </p>
             <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center' }}>
-              <a href="/dashboard/payout" style={{ background: '#28A86A', color: '#0D0F0A', padding: '0.75rem 1.5rem', borderRadius: '8px', fontFamily: 'Syne, sans-serif', fontWeight: 700, textDecoration: 'none', fontSize: '0.9rem' }}>Request Payout</a>
-              <a href="/dashboard" style={{ background: '#1E2218', color: '#F5F2E8', padding: '0.75rem 1.5rem', borderRadius: '8px', fontFamily: 'Syne, sans-serif', fontWeight: 700, textDecoration: 'none', fontSize: '0.9rem' }}>Dashboard</a>
+              <a href="/dashboard" style={{ background: '#28A86A', color: '#0D0F0A', padding: '0.75rem 1.5rem', borderRadius: '8px', fontFamily: 'Syne, sans-serif', fontWeight: 700, textDecoration: 'none', fontSize: '0.9rem' }}>Go to Dashboard</a>
+              <a href="/dashboard/trade" style={{ background: '#1E2218', color: '#F5F2E8', padding: '0.75rem 1.5rem', borderRadius: '8px', fontFamily: 'Syne, sans-serif', fontWeight: 700, textDecoration: 'none', fontSize: '0.9rem' }}>Continue Trading</a>
             </div>
           </div>
         </div>

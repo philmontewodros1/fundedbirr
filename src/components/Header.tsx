@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Menu, X } from 'lucide-react';
 
 const NAV = [
@@ -13,6 +13,19 @@ const NAV = [
 
 export default function Header() {
   const [open, setOpen] = useState(false);
+  const [lang, setLang] = useState<'en' | 'am'>('en');
+
+  useEffect(() => {
+    const saved = localStorage.getItem('fb_lang') as 'en' | 'am' | null;
+    if (saved) setLang(saved);
+  }, []);
+
+  function toggleLang() {
+    const next = lang === 'en' ? 'am' : 'en';
+    setLang(next);
+    localStorage.setItem('fb_lang', next);
+    window.location.reload();
+  }
 
   return (
     <header className="sticky top-0 z-50" style={{ background: 'rgba(13,15,10,0.95)', backdropFilter: 'blur(12px)', borderBottom: '1px solid rgba(201,145,42,0.15)' }}>
@@ -35,12 +48,24 @@ export default function Header() {
             ))}
           </nav>
 
-          <Link
-            href="/auth/register"
-            className="hidden md:inline-block btn-primary px-5 py-2 rounded-lg text-sm no-underline"
-          >
-            Start Challenge →
-          </Link>
+          <div className="hidden md:flex items-center gap-4">
+            <button
+              onClick={toggleLang}
+              style={{
+                background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)',
+                color: 'var(--text-muted)', padding: '4px 10px', borderRadius: '6px',
+                cursor: 'pointer', fontSize: '0.75rem', fontWeight: 600,
+              }}
+            >
+              {lang === 'en' ? 'አማ' : 'EN'}
+            </button>
+            <Link
+              href="/auth/register"
+              className="btn-primary px-5 py-2 rounded-lg text-sm no-underline"
+            >
+              Start Challenge →
+            </Link>
+          </div>
 
           <button
             onClick={() => setOpen(!open)}
@@ -55,6 +80,16 @@ export default function Header() {
       {open && (
         <div className="md:hidden" style={{ background: 'var(--dark-2)', borderTop: '1px solid rgba(255,255,255,0.05)' }}>
           <div className="px-6 py-4 space-y-3">
+            <button
+              onClick={toggleLang}
+              style={{
+                background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)',
+                color: 'var(--text-muted)', padding: '6px 14px', borderRadius: '6px',
+                cursor: 'pointer', fontSize: '0.8rem', fontWeight: 600, width: '100%', textAlign: 'center',
+              }}
+            >
+              {lang === 'en' ? 'አማርኛ' : 'English'}
+            </button>
             {NAV.map((item) => (
               <Link
                 key={item.href}

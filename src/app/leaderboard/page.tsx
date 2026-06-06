@@ -1,19 +1,41 @@
-const LEADERS = [
-  { rank: 1, name: 'AddisSniper', profit: '+18.4%', account: '$25K Pro', status: 'Funded' },
-  { rank: 2, name: 'GoldKing251', profit: '+14.2%', account: '$50K Elite', status: 'Funded' },
-  { rank: 3, name: 'EthioXAU', profit: '+11.7%', account: '$10K Standard', status: 'Funded' },
-  { rank: 4, name: 'BoleTrader', profit: '+9.8%', account: '$25K Pro', status: 'Phase 2' },
-  { rank: 5, name: 'LalibeltFX', profit: '+8.3%', account: '$5K Starter', status: 'Phase 2' },
-  { rank: 6, name: 'AxumFX', profit: '+7.1%', account: '$10K Standard', status: 'Phase 1' },
-  { rank: 7, name: 'ShebaTrade', profit: '+6.5%', account: '$25K Pro', status: 'Phase 1' },
-  { rank: 8, name: 'NileCapital', profit: '+5.8%', account: '$5K Starter', status: 'Phase 1' },
-];
+'use client';
+
+import { useEffect, useState } from 'react';
+import { PLAN_LABELS } from '@/lib/constants';
+
+interface Trader {
+  id: string;
+  full_name: string;
+  account_size: string;
+  challenge_status: string;
+  virtual_balance: number;
+  profit_pct: number;
+  win_rate: number;
+  rank: number;
+}
 
 const RANK_COLORS: Record<number, string> = {
   1: '#FFD700', 2: '#C0C0C0', 3: '#CD7F32',
 };
 
 export default function LeaderboardPage() {
+  const [traders, setTraders] = useState<Trader[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function load() {
+      try {
+        const res = await fetch('/api/leaderboard');
+        if (res.ok) {
+          const data = await res.json();
+          setTraders(data.traders || []);
+        }
+      } catch {}
+      setLoading(false);
+    }
+    load();
+  }, []);
+
   return (
     <section style={{ padding: '5rem 2rem', maxWidth: '1100px', margin: '0 auto' }}>
       <div className="section-label" style={{ textAlign: 'center' }}>Live leaderboard</div>
@@ -27,58 +49,68 @@ export default function LeaderboardPage() {
         Rankings update daily based on verified trading performance.
       </p>
 
-      <div style={{ background: 'var(--dark-2)', border: '1px solid rgba(201,145,42,0.15)', borderRadius: '14px', overflow: 'hidden' }}>
+      {loading ? (
+        <div style={{ textAlign: 'center', color: 'var(--text-muted)', padding: '3rem' }}>Loading...</div>
+      ) : traders.length === 0 ? (
         <div style={{
-          display: 'grid', gridTemplateColumns: '3rem 1fr 1fr 1fr 1fr',
-          padding: '1rem 1.5rem', fontSize: '0.72rem', textTransform: 'uppercase',
-          letterSpacing: '0.08em', color: 'var(--text-muted)',
-          borderBottom: '1px solid rgba(201,145,42,0.1)', fontWeight: 500,
+          background: 'var(--dark-2)', border: '1px solid rgba(201,145,42,0.15)',
+          borderRadius: '14px', padding: '3rem 2rem', textAlign: 'center',
         }}>
-          <div>Rank</div><div>Trader</div><div>Profit</div><div>Account</div><div>Status</div>
+          <div style={{ fontSize: '2.5rem', marginBottom: '1rem' }}>🏆</div>
+          <h2 style={{ fontFamily: "'Syne', sans-serif", fontWeight: 700, fontSize: '1.2rem', marginBottom: '0.5rem' }}>
+            No traders on the leaderboard yet. Be the first!
+          </h2>
+          <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>
+            Complete a challenge to appear here.
+          </p>
         </div>
-          {LEADERS.map((t) => (
-          <div key={t.rank} className="hover-row" style={{
-            display: 'grid', gridTemplateColumns: '3rem 1fr 1fr 1fr 1fr',
-            padding: '1rem 1.5rem', alignItems: 'center',
-            borderBottom: '1px solid rgba(255,255,255,0.04)',
-            fontSize: '0.875rem',
+      ) : (
+        <div style={{ background: 'var(--dark-2)', border: '1px solid rgba(201,145,42,0.15)', borderRadius: '14px', overflow: 'hidden' }}>
+          <div style={{
+            display: 'grid', gridTemplateColumns: '3rem 1fr 1fr 1fr 1fr 1fr',
+            padding: '1rem 1.5rem', fontSize: '0.72rem', textTransform: 'uppercase',
+            letterSpacing: '0.08em', color: 'var(--text-muted)',
+            borderBottom: '1px solid rgba(201,145,42,0.1)', fontWeight: 500,
           }}>
-            <div style={{
-              fontFamily: "'Syne', sans-serif", fontWeight: 800, fontSize: '0.9rem',
-              color: RANK_COLORS[t.rank] || 'var(--text-muted)',
-            }}>
-              {String(t.rank).padStart(2, '0')}
-            </div>
-            <div>{t.name}</div>
-            <div style={{ color: 'var(--green-light)', fontWeight: 500, fontFamily: "'Syne', sans-serif" }}>{t.profit}</div>
-            <div style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>{t.account}</div>
-            <div>
-              {t.status === 'Funded' ? (
-                <span style={{
-                  display: 'inline-flex', alignItems: 'center',
-                  background: 'rgba(29,122,74,0.15)', color: 'var(--green-light)',
-                  fontSize: '0.7rem', padding: '3px 10px', borderRadius: '100px',
-                  border: '1px solid rgba(29,122,74,0.25)',
-                }}>
-                  ✓ Funded
-                </span>
-              ) : (
-                <span style={{
-                  display: 'inline-flex', alignItems: 'center',
-                  background: 'rgba(201,145,42,0.1)', color: 'var(--accent)',
-                  fontSize: '0.7rem', padding: '3px 10px', borderRadius: '100px',
-                  border: '1px solid rgba(201,145,42,0.2)',
-                }}>
-                  {t.status}
-                </span>
-              )}
-            </div>
+            <div>Rank</div><div>Trader</div><div>Profit</div><div>Win Rate</div><div>Account</div><div>Status</div>
           </div>
-        ))}
-      </div>
+          {traders.map((t) => (
+            <div key={t.id} className="hover-row" style={{
+              display: 'grid', gridTemplateColumns: '3rem 1fr 1fr 1fr 1fr 1fr',
+              padding: '1rem 1.5rem', alignItems: 'center',
+              borderBottom: '1px solid rgba(255,255,255,0.04)',
+              fontSize: '0.875rem',
+            }}>
+              <div style={{
+                fontFamily: "'Syne', sans-serif", fontWeight: 800, fontSize: '0.9rem',
+                color: RANK_COLORS[t.rank] || 'var(--text-muted)',
+              }}>
+                {String(t.rank).padStart(2, '0')}
+              </div>
+              <div>{t.full_name || 'Trader'}</div>
+              <div style={{ color: t.profit_pct >= 0 ? 'var(--green-light)' : '#ff6b6b', fontWeight: 500, fontFamily: "'Syne', sans-serif" }}>
+                {t.profit_pct >= 0 ? '+' : ''}{t.profit_pct}%
+              </div>
+              <div style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>{t.win_rate}%</div>
+              <div style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>{PLAN_LABELS[t.account_size] || t.account_size}</div>
+              <div>
+                <span style={{
+                  display: 'inline-flex', alignItems: 'center',
+                  background: t.challenge_status === 'passed' ? 'rgba(29,122,74,0.15)' : 'rgba(201,145,42,0.1)',
+                  color: t.challenge_status === 'passed' ? 'var(--green-light)' : 'var(--accent)',
+                  fontSize: '0.7rem', padding: '3px 10px', borderRadius: '100px',
+                  border: t.challenge_status === 'passed' ? '1px solid rgba(29,122,74,0.25)' : '1px solid rgba(201,145,42,0.2)',
+                }}>
+                  {t.challenge_status === 'passed' ? '✓ Funded' : t.challenge_status}
+                </span>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
 
       <p style={{ color: 'var(--text-muted)', fontSize: '0.75rem', textAlign: 'center', marginTop: '2rem' }}>
-        Connect your MT5 account to appear on the leaderboard.
+        Rankings calculated from closed trade performance.
       </p>
     </section>
   );

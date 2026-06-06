@@ -7,7 +7,7 @@ export async function GET() {
   const supabaseAdmin = getSupabaseAdmin();
   const { data: payouts, error } = await supabaseAdmin
     .from('payouts')
-    .select('*')
+    .select('*, users!inner(full_name, email)')
     .order('requested_at', { ascending: false });
 
   if (error) {
@@ -18,11 +18,14 @@ export async function GET() {
 }
 
 export async function PATCH(req: Request) {
-  const { id, status } = await req.json();
+  const { id, status, rejectionReason } = await req.json();
 
   const update: Record<string, any> = { status };
   if (status === 'paid') {
     update.paid_at = new Date().toISOString();
+  }
+  if (status === 'rejected' && rejectionReason) {
+    update.rejection_reason = rejectionReason;
   }
 
   const supabaseAdmin2 = getSupabaseAdmin();

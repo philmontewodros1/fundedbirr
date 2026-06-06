@@ -106,6 +106,36 @@ export async function sendResetPasswordEmail(email: string, name: string, resetL
   }
 }
 
+export async function sendChallengePassedEmail(email: string, name: string, accountSize: string, appUrl: string) {
+  if (!process.env.RESEND_API_KEY) return;
+  try {
+    await resend.emails.send({
+      from,
+      to: email,
+      subject: '🎉 You Passed! Welcome to Funded Status',
+      html: `
+        <div style="font-family: sans-serif; max-width: 480px; margin: 0 auto;">
+          <h1 style="color:#1D7A4A;">Challenge Passed! 🏆</h1>
+          <p>Congratulations ${name}!</p>
+          <p>You have passed both phases of the <strong>${accountSize.toUpperCase()}</strong> challenge.</p>
+          <p>You are now a <strong>FundedBirr funded trader</strong>. You keep 80% of all profits generated.</p>
+          <ul>
+            <li>Request your first payout from the dashboard</li>
+            <li>Your challenge fee will be refunded with the first payout</li>
+            <li>Continue trading — scaling starts after 3 months</li>
+          </ul>
+          <p>
+            <a href="${appUrl}/dashboard" style="display:inline-block;background:#1D7A4A;color:#fff;padding:10px 20px;border-radius:8px;text-decoration:none;font-weight:bold;">Go to Dashboard</a>
+          </p>
+          <p style="color:#666;font-size:12px;">FundedBirr — Simulated evaluation, real rewards.</p>
+        </div>
+      `,
+    });
+  } catch (err) {
+    console.error('Challenge passed email error:', err);
+  }
+}
+
 export async function sendPayoutApprovedEmail(email: string, name: string, amount: number, method: string) {
   if (!process.env.RESEND_API_KEY) return;
   try {

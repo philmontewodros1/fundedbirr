@@ -1,7 +1,6 @@
-// src/app/api/trade/close/route.ts
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
-import { sendChallengeFailedEmail } from '@/lib/resend'
+import { sendChallengeFailedEmail, sendChallengePassedEmail } from '@/lib/resend'
 import { PLAN_LABELS } from '@/lib/constants'
 
 const supabase = createClient(
@@ -13,7 +12,6 @@ export async function POST(req: NextRequest) {
   try {
     const { trade_id, exit_price, user_id } = await req.json()
 
-    // Get trade
     const { data: trade, error: tradeErr } = await supabase
       .from('trades')
       .select('*')
@@ -26,7 +24,6 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Trade not found' }, { status: 404 })
     }
 
-    // Get challenge
     const { data: challenge } = await supabase
       .from('challenges')
       .select('*')
@@ -37,9 +34,6 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Challenge not found' }, { status: 404 })
     }
 
-    // Calculate P&L
-    // 1 lot XAUUSD = 100 oz, pip value ≈ $1 per 0.01 price move per 0.01 lot
-    // Simplified: pnl = price_diff * lot_size * 100
     let pnl = 0
     if (trade.direction === 'buy') {
       pnl = (exit_price - trade.entry_price) * trade.lot_size * 100
@@ -48,7 +42,6 @@ export async function POST(req: NextRequest) {
     }
     pnl = Math.round(pnl * 100) / 100
 
-    // Update trade
     await supabase
       .from('trades')
       .update({
@@ -59,27 +52,23 @@ export async function POST(req: NextRequest) {
       })
       .eq('id', trade_id)
 
-    // Update challenge balance/equity
     const newBalance = (challenge.current_balance || challenge.virtual_balance) + pnl
     const newEquity = newBalance
 
-    // Check if new trading day — increment trading days
     const today = new Date().toISOString().split('T')[0]
     let tradingDaysCount = challenge.trading_days_count || 0
     let dailyStartEquity = challenge.daily_start_equity || challenge.virtual_balance
 
     if (challenge.last_reset_date !== today) {
-      // New day — reset daily tracking
       tradingDaysCount += 1
       dailyStartEquity = newEquity
     }
 
-    // === RULE ENGINE ===
     const startingBalance = challenge.virtual_balance
-    let newStatus = 'active'
+    let newStatus: string = challenge.status
+    let newPhase: number = challenge.phase || 1
     let failReason = ''
 
-    // Daily drawdown check (5%)
     const dailyLoss = dailyStartEquity - newEquity
     const dailyDDPct = (dailyLoss / startingBalance) * 100
     if (dailyDDPct >= 5) {
@@ -87,7 +76,6 @@ export async function POST(req: NextRequest) {
       failReason = 'Daily drawdown limit (5%) reached'
     }
 
-    // Max drawdown check (10%)
     const totalLoss = startingBalance - newEquity
     const maxDDPct = (totalLoss / startingBalance) * 100
     if (maxDDPct >= 10) {
@@ -95,27 +83,142 @@ export async function POST(req: NextRequest) {
       failReason = 'Maximum drawdown limit (10%) reached'
     }
 
-    // Profit target check (10%)
-    const profitPct = ((newBalance - startingBalance) / startingBalance) * 100
-    if (profitPct >= 10 && newStatus === 'active') {
-      newStatus = 'passed'
+    if (newStatus !== 'failed') {
+      const profitPct = ((newBalance - startingBalance) / startingBalance) * 100
+
+      if (newPhase === 1 && profitPct >= 10) {
+        const { data: trades } = await supabase
+          .from('trades')
+          .select('profit_loss, closed_at')
+          .eq('challenge_id', challenge.id)
+          .eq('status', 'closed')
+          .order('closed_at', { ascending: true })
+
+        if (trades && trades.length >= 5) {
+          const totalProfit = trades.reduce((sum, t) => sum + Math.max(0, t.profit_loss), 0)
+          if (totalProfit > 0) {
+            const dailyProfits: Record<string, number> = {}
+            trades.forEach((t) => {
+              if (t.profit_loss > 0) {
+                const day = t.closed_at?.split('T')[0] || ''
+                dailyProfits[day] = (dailyProfits[day] || 0) + t.profit_loss
+              }
+            })
+            const maxDayProfit = Math.max(...Object.values(dailyProfits), 0)
+            if (maxDayProfit / totalProfit > 0.5) {
+              failReason = 'Consistency rule failed — one day exceeded 50% of total profits'
+              newStatus = 'failed'
+            }
+          }
+        } else {
+          failReason = 'Minimum 5 trading days required for Phase 1'
+          newStatus = 'failed'
+        }
+
+        if (newStatus !== 'failed') {
+          newPhase = 2
+          newStatus = 'active'
+          await supabase
+            .from('challenges')
+            .update({
+              current_balance: challenge.virtual_balance,
+              current_equity: challenge.virtual_balance,
+              daily_start_equity: challenge.virtual_balance,
+              last_reset_date: today,
+              phase: 2,
+              trading_days_count: 0,
+              status: 'active',
+            })
+            .eq('id', challenge.id)
+
+          return NextResponse.json({
+            success: true,
+            pnl,
+            new_balance: challenge.virtual_balance,
+            new_equity: challenge.virtual_balance,
+            challenge_status: 'phase2',
+            phase: 2,
+            fail_reason: '',
+            daily_dd_pct: 0,
+            max_dd_pct: 0,
+            profit_pct: 0,
+            trading_days: 0,
+          })
+        }
+      }
+
+      if (newPhase === 2) {
+        const { data: trades } = await supabase
+          .from('trades')
+          .select('profit_loss, closed_at')
+          .eq('challenge_id', challenge.id)
+          .eq('status', 'closed')
+          .order('closed_at', { ascending: true })
+
+        if (trades && trades.length >= 3) {
+          const totalProfit = trades.reduce((sum, t) => sum + Math.max(0, t.profit_loss), 0)
+          if (totalProfit > 0) {
+            const dailyProfits: Record<string, number> = {}
+            trades.forEach((t) => {
+              if (t.profit_loss > 0) {
+                const day = t.closed_at?.split('T')[0] || ''
+                dailyProfits[day] = (dailyProfits[day] || 0) + t.profit_loss
+              }
+            })
+            const maxDayProfit = Math.max(...Object.values(dailyProfits), 0)
+            if (maxDayProfit / totalProfit > 0.5) {
+              failReason = 'Consistency rule failed — one day exceeded 50% of total profits'
+              newStatus = 'failed'
+            }
+          }
+        } else {
+          failReason = 'Minimum 3 trading days required for Phase 2'
+          newStatus = 'failed'
+        }
+
+        if (newStatus !== 'failed' && profitPct >= 5) {
+          newStatus = 'passed'
+          await supabase
+            .from('challenges')
+            .update({
+              current_balance: newBalance,
+              current_equity: newEquity,
+              daily_start_equity: dailyStartEquity,
+              last_reset_date: today,
+              trading_days_count: tradingDaysCount,
+              status: 'passed',
+              completed_at: new Date().toISOString(),
+            })
+            .eq('id', challenge.id)
+
+          const { data: user } = await supabase
+            .from('users')
+            .select('email, full_name')
+            .eq('id', user_id)
+            .single()
+          if (user) {
+            try {
+              await sendChallengePassedEmail(
+                user.email,
+                user.full_name || 'Trader',
+                PLAN_LABELS[challenge.account_size] || challenge.account_size,
+                process.env.NEXT_PUBLIC_APP_URL || 'https://www.fundedbirr.com'
+              )
+            } catch (_) {}
+          }
+
+          return NextResponse.json({
+            success: true, pnl, new_balance: newBalance, new_equity: newEquity,
+            challenge_status: 'passed', phase: 2,
+            fail_reason: '', daily_dd_pct: Math.round(dailyDDPct * 100) / 100,
+            max_dd_pct: Math.round(maxDDPct * 100) / 100,
+            profit_pct: Math.round(profitPct * 100) / 100,
+            trading_days: tradingDaysCount,
+          })
+        }
+      }
     }
 
-    // Update challenge
-    await supabase
-      .from('challenges')
-      .update({
-        current_balance: newBalance,
-        current_equity: newEquity,
-        daily_start_equity: dailyStartEquity,
-        last_reset_date: today,
-        trading_days_count: tradingDaysCount,
-        status: newStatus === 'active' ? challenge.status : newStatus,
-        completed_at: newStatus !== 'active' ? new Date().toISOString() : null
-      })
-      .eq('id', challenge.id)
-
-    // If failed — close all open positions and send email
     if (newStatus === 'failed') {
       await supabase
         .from('trades')
@@ -128,7 +231,19 @@ export async function POST(req: NextRequest) {
         .eq('challenge_id', challenge.id)
         .eq('status', 'open')
 
-      // Send fail notification email
+      await supabase
+        .from('challenges')
+        .update({
+          current_balance: newBalance,
+          current_equity: newEquity,
+          daily_start_equity: dailyStartEquity,
+          last_reset_date: today,
+          trading_days_count: tradingDaysCount,
+          status: 'failed',
+          completed_at: new Date().toISOString(),
+        })
+        .eq('id', challenge.id)
+
       try {
         const { data: user } = await supabase
           .from('users')
@@ -144,22 +259,38 @@ export async function POST(req: NextRequest) {
             process.env.NEXT_PUBLIC_APP_URL || 'https://www.fundedbirr.com'
           )
         }
-      } catch (e) {
-        console.error('Fail email error:', e)
-      }
+      } catch (_) {}
+
+      return NextResponse.json({
+        success: true, pnl, new_balance: newBalance, new_equity: newEquity,
+        challenge_status: 'failed', phase: newPhase,
+        fail_reason: failReason,
+        daily_dd_pct: Math.round(dailyDDPct * 100) / 100,
+        max_dd_pct: Math.round(maxDDPct * 100) / 100,
+        profit_pct: Math.round(((newBalance - startingBalance) / startingBalance) * 100 * 100) / 100,
+        trading_days: tradingDaysCount,
+      })
     }
 
+    await supabase
+      .from('challenges')
+      .update({
+        current_balance: newBalance,
+        current_equity: newEquity,
+        daily_start_equity: dailyStartEquity,
+        last_reset_date: today,
+        trading_days_count: tradingDaysCount,
+      })
+      .eq('id', challenge.id)
+
     return NextResponse.json({
-      success: true,
-      pnl,
-      new_balance: newBalance,
-      new_equity: newEquity,
-      challenge_status: newStatus === 'active' ? challenge.status : newStatus,
-      fail_reason: failReason,
+      success: true, pnl, new_balance: newBalance, new_equity: newEquity,
+      challenge_status: 'active', phase: newPhase,
+      fail_reason: '',
       daily_dd_pct: Math.round(dailyDDPct * 100) / 100,
       max_dd_pct: Math.round(maxDDPct * 100) / 100,
-      profit_pct: Math.round(profitPct * 100) / 100,
-      trading_days: tradingDaysCount
+      profit_pct: Math.round(((newBalance - startingBalance) / startingBalance) * 100 * 100) / 100,
+      trading_days: tradingDaysCount,
     })
   } catch (err: any) {
     return NextResponse.json({ error: err.message }, { status: 500 })

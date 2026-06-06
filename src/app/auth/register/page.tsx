@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useState, Suspense } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { createBrowserClient } from '@supabase/ssr';
 
@@ -14,6 +14,7 @@ function RegisterForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const ref = searchParams.get('ref') || '';
+  const isTrial = searchParams.get('trial') === 'true';
 
   const [fullName, setFullName] = useState('');
   const [phone, setPhone] = useState('');
@@ -21,6 +22,12 @@ function RegisterForm() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (ref) {
+      localStorage.setItem('fb_ref', ref);
+    }
+  }, [ref]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -30,6 +37,10 @@ function RegisterForm() {
     try {
       const body: Record<string, any> = { email, password, fullName, phone };
       if (ref) body.referredBy = ref;
+      if (isTrial) body.isTrial = true;
+
+      const savedRef = localStorage.getItem('fb_ref');
+      if (savedRef && !ref) body.referredBy = savedRef;
 
       const res = await fetch('/api/auth/signup', {
         method: 'POST',
@@ -51,7 +62,13 @@ function RegisterForm() {
         return;
       }
 
-      router.push('/dashboard');
+      localStorage.removeItem('fb_ref');
+
+      if (data.isTrial) {
+        router.push('/dashboard/trade');
+      } else {
+        router.push('/dashboard');
+      }
       router.refresh();
     } catch {
       setError('Connection error. Please try again.');
@@ -62,6 +79,26 @@ function RegisterForm() {
 
   return (
     <section style={{ padding: '5rem 2rem', maxWidth: '460px', margin: '0 auto' }}>
+      {ref && (
+        <div style={{
+          background: 'rgba(201,145,42,0.1)', border: '1px solid rgba(201,145,42,0.25)',
+          borderRadius: '10px', padding: '0.75rem 1rem', marginBottom: '1rem',
+          textAlign: 'center', fontSize: '0.85rem', color: 'var(--accent)',
+        }}>
+          🎉 You were invited by a FundedBirr trader!
+        </div>
+      )}
+
+      {isTrial && (
+        <div style={{
+          background: 'rgba(29,122,74,0.1)', border: '1px solid rgba(29,122,74,0.25)',
+          borderRadius: '10px', padding: '0.75rem 1rem', marginBottom: '1rem',
+          textAlign: 'center', fontSize: '0.85rem', color: 'var(--green-light)',
+        }}>
+          🆓 Free Trial — no payment required
+        </div>
+      )}
+
       <div style={{
         background: 'var(--dark-2)', border: '1px solid rgba(255,255,255,0.06)',
         borderRadius: '16px', padding: '2.5rem',
@@ -74,10 +111,10 @@ function RegisterForm() {
             Funded<span style={{ color: 'var(--green-light)' }}>Birr</span>
           </Link>
           <h2 style={{ fontFamily: "'Syne', sans-serif", fontWeight: 700, fontSize: '1.4rem', marginTop: '1.5rem', marginBottom: '0.25rem' }}>
-            Create Account
+            {isTrial ? 'Create Free Trial Account' : 'Create Account'}
           </h2>
           <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>
-            {ref ? `Referred by ${ref}` : 'Start your funded trader journey'}
+            {isTrial ? 'Start trading with $1,000 virtual' : ref ? `Referred by ${ref}` : 'Start your funded trader journey'}
           </p>
         </div>
 
@@ -142,7 +179,7 @@ function RegisterForm() {
               marginTop: '0.5rem',
             }}
           >
-            {loading ? 'Creating Account...' : 'Create Account'}
+            {loading ? 'Creating Account...' : isTrial ? 'Start Free Trial' : 'Create Account'}
           </button>
         </form>
 

@@ -6,7 +6,7 @@ export async function POST(req: Request) {
   const supabaseAdmin = getSupabaseAdmin();
 
   try {
-    const { email, password, fullName, phone, referredBy } = await req.json();
+    const { email, password, fullName, phone, referredBy, isTrial } = await req.json();
 
     if (!email || !password || !fullName || !phone) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
@@ -52,6 +52,24 @@ export async function POST(req: Request) {
         console.error('Profile insert error:', profileError);
       }
 
+      if (isTrial) {
+        const { error: trialError } = await supabaseAdmin.from('challenges').insert({
+          user_id: authData.user.id,
+          account_size: 'trial',
+          virtual_balance: 1000,
+          price_etb: 0,
+          phase: 1,
+          status: 'active',
+          profit_target: 10,
+          daily_loss_limit: 5,
+          max_loss_limit: 10,
+        });
+
+        if (trialError) {
+          console.error('Trial challenge error:', trialError);
+        }
+      }
+
       sendWelcomeEmail(email, fullName);
     }
 
@@ -63,6 +81,7 @@ export async function POST(req: Request) {
         access_token: signIn?.session?.access_token,
         refresh_token: signIn?.session?.refresh_token,
       },
+      isTrial: !!isTrial,
     });
   } catch (err) {
     console.error('Signup error:', err);
