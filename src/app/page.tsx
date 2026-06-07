@@ -133,7 +133,7 @@ export default async function HomePage() {
             <Link href="/auth/register" className="btn-primary no-underline px-8 py-3 rounded-lg">
               Start Challenge →
             </Link>
-            <a href="https://t.me/fundedbirr" target="_blank" rel="noopener noreferrer" className="btn-secondary no-underline px-8 py-3 rounded-lg">
+            <a href="https://t.me/+D6Fhx_vQz4o1Y2U0" target="_blank" rel="noopener noreferrer" className="btn-secondary no-underline px-8 py-3 rounded-lg">
               Join Telegram
             </a>
           </div>
