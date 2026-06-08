@@ -85,6 +85,7 @@ export async function POST(req: NextRequest) {
       dailyStartEquity = newEquity
     }
 
+    const challengeModel: string = challenge.model || '2step'
     const startingBalance = challenge.virtual_balance
     let newStatus: string = challenge.status
     let newPhase: number = challenge.phase || 1
@@ -137,6 +138,48 @@ export async function POST(req: NextRequest) {
         }
 
         if (newStatus !== 'failed') {
+          if (challengeModel === '1step') {
+            newStatus = 'passed'
+            await admin
+              .from('challenges')
+              .update({
+                current_balance: newBalance,
+                current_equity: newEquity,
+                daily_start_equity: dailyStartEquity,
+                last_reset_date: today,
+                trading_days_count: tradingDaysCount,
+                status: 'passed',
+                completed_at: new Date().toISOString(),
+              })
+              .eq('id', challenge.id)
+
+            const { data: userData } = await admin
+              .from('users')
+              .select('email, full_name')
+              .eq('id', user_id)
+              .single()
+            if (userData) {
+              try {
+                await sendChallengePassedEmail(
+                  userData.email,
+                  userData.full_name || 'Trader',
+                  PLAN_LABELS[challenge.account_size] || challenge.account_size,
+                  process.env.NEXT_PUBLIC_APP_URL || 'https://www.fundedbirr.com'
+                )
+              } catch (_) {}
+            }
+
+            return NextResponse.json({
+              success: true, pnl, new_balance: newBalance, new_equity: newEquity,
+              challenge_status: 'passed', phase: 1,
+              fail_reason: '',
+              daily_dd_pct: Math.round(dailyDDPct * 100) / 100,
+              max_dd_pct: Math.round(maxDDPct * 100) / 100,
+              profit_pct: Math.round(profitPct * 100) / 100,
+              trading_days: tradingDaysCount,
+            })
+          }
+
           newPhase = 2
           newStatus = 'active'
           await admin

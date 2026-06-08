@@ -56,11 +56,13 @@ export async function PATCH(req: Request) {
     }
 
     const challengeType = payment.challenge_type || 'pro';
+    const challengeModel = payment.model || '2step';
     const config = getChallengeConfig(challengeType);
 
     const { error: challengeError } = await adminClient.from('challenges').insert({
       user_id: payment.user_id,
       account_size: challengeType,
+      model: challengeModel,
       virtual_balance: config.virtualBalance,
       price_etb: config.price,
       phase: 1,
@@ -77,7 +79,7 @@ export async function PATCH(req: Request) {
     const userProfile = payment.users;
     if (userProfile) {
       try {
-        await sendChallengeEmail(userProfile.email, userProfile.full_name, challengeType);
+        await sendChallengeEmail(userProfile.email, userProfile.full_name, challengeType, challengeModel);
       } catch (e) {
         console.error('Email error:', e);
       }

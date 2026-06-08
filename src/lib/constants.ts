@@ -52,6 +52,11 @@ export const FUNDED_CONFIG = {
   consistencyPct: 50,
 };
 
+export const CHALLENGE_MODELS: Record<string, { label: string, description: string }> = {
+  '2step': { label: '2-Step Evaluation', description: 'Phase 1 (10%) → Phase 2 (5%) → Funded' },
+  '1step': { label: '1-Step Evaluation', description: 'Single Phase (10%) → Funded' },
+};
+
 export const INSTRUMENTS: Record<string, { label: string, contractSize: number, category: string }> = {
   XAUUSD: { label: 'XAUUSD · Gold', contractSize: 100, category: 'Commodities' },
   XAGUSD: { label: 'XAGUSD · Silver', contractSize: 5000, category: 'Commodities' },

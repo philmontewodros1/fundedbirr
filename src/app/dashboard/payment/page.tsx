@@ -17,6 +17,7 @@ function PaymentContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const planParam = searchParams.get('plan') || '';
+  const modelParam = searchParams.get('model') || '';
 
   const challengeType = PLAN_TO_TYPE[planParam];
   const meta = PLANS_META[planParam];
@@ -32,7 +33,8 @@ function PaymentContent() {
     if (!challengeType) {
       const saved = localStorage.getItem('fb_plan');
       if (saved && PLAN_TO_TYPE[saved]) {
-        router.replace(`/dashboard/payment?plan=${saved}`);
+        const savedModel = localStorage.getItem('fb_model') || '2step';
+        router.replace(`/dashboard/payment?plan=${saved}&model=${savedModel}`);
       }
     }
   }, [challengeType, router]);
@@ -48,6 +50,7 @@ function PaymentContent() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           challengeType,
+          model: modelParam || '2step',
           telebirrTxRef: telebirrTxRef.trim(),
           telebirrPhone: telebirrPhone.trim(),
           fullName: fullName.trim(),
@@ -126,6 +129,15 @@ function PaymentContent() {
         </div>
         <div style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>
           Virtual capital: <strong style={{ color: 'var(--green-light)' }}>${virtualBalance.toLocaleString()}</strong>
+        </div>
+        <div style={{
+          marginTop: '0.75rem', padding: '0.4rem 1rem', borderRadius: '100px',
+          background: modelParam === '1step' ? 'rgba(41,168,106,0.1)' : 'rgba(201,145,42,0.1)',
+          border: `1px solid ${modelParam === '1step' ? 'rgba(41,168,106,0.25)' : 'rgba(201,145,42,0.25)'}`,
+          display: 'inline-block', fontSize: '0.75rem', fontWeight: 600,
+          color: modelParam === '1step' ? 'var(--green-light)' : 'var(--accent)',
+        }}>
+          {modelParam === '1step' ? '1-Step Evaluation' : '2-Step Evaluation'}
         </div>
       </div>
 

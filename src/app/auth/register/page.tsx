@@ -17,6 +17,7 @@ function RegisterForm() {
   const ref = searchParams.get('ref') || '';
   const isTrial = searchParams.get('trial') === 'true';
   const planParam = searchParams.get('plan') || '';
+  const modelParam = searchParams.get('model') || '2step';
 
   const [fullName, setFullName] = useState('');
   const [phone, setPhone] = useState('');
@@ -38,6 +39,12 @@ function RegisterForm() {
       localStorage.setItem('fb_plan', planParam);
     }
   }, [planParam]);
+
+  useEffect(() => {
+    if (modelParam) {
+      localStorage.setItem('fb_model', modelParam);
+    }
+  }, [modelParam]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -78,7 +85,7 @@ function RegisterForm() {
       if (data.isTrial) {
         router.push('/dashboard/trade');
       } else if (planType) {
-        router.push(`/dashboard/payment?plan=${planParam}`);
+        router.push(`/dashboard/payment?plan=${planParam}&model=${modelParam}`);
       } else {
         router.push('/dashboard');
       }

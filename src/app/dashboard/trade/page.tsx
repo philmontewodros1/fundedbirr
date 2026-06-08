@@ -28,6 +28,7 @@ interface Challenge {
   account_size: string
   trading_days_count: number
   phase: number
+  model?: string
 }
 
 const SPREAD: Record<string, number> = {
@@ -80,6 +81,7 @@ export default function TradePage() {
   const [error, setError] = useState<string>('')
 
   const phase = challenge?.phase || 1
+  const isSingleStep = challenge?.model === '1step'
   const profitTarget = phase === 1 ? 10 : 5
   const minDays = phase === 1 ? 5 : 3
   const instr = INSTRUMENTS[selectedSymbol]
@@ -342,11 +344,11 @@ export default function TradePage() {
           </select>
           {challenge && (
             <span style={{
-              background: phase === 1 ? '#2A2010' : '#102A1A',
-              color: phase === 1 ? '#E8B84B' : '#28A86A',
+              background: isSingleStep ? '#102A1A' : (phase === 1 ? '#2A2010' : '#102A1A'),
+              color: isSingleStep ? '#28A86A' : (phase === 1 ? '#E8B84B' : '#28A86A'),
               padding: '0.2rem 0.75rem', borderRadius: '100px', fontSize: '0.75rem', fontWeight: 700,
             }}>
-              Phase {phase}
+              {isSingleStep ? 'Single Phase' : `Phase ${phase}`}
             </span>
           )}
         </div>
@@ -536,7 +538,7 @@ export default function TradePage() {
           {/* Account stats */}
           <div style={{ padding: '1.25rem', borderBottom: '1px solid #1E2218' }}>
             <div style={{ fontSize: '0.7rem', color: '#9A9880', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '1rem' }}>
-              Phase {phase} — {' '}
+              {isSingleStep ? 'Single Phase' : `Phase ${phase}`} — {' '}
               <span style={{ color: '#F0C060' }}>{profitTarget}% target</span>
             </div>
 
@@ -585,7 +587,7 @@ export default function TradePage() {
 
           <div style={{ padding: '1rem 1.25rem' }}>
             <div style={{ fontSize: '0.72rem', color: '#9A9880', lineHeight: 1.6 }}>
-              <strong style={{ color: '#E8B84B', display: 'block', marginBottom: '0.3rem' }}>Phase {phase} Rules</strong>
+              <strong style={{ color: '#E8B84B', display: 'block', marginBottom: '0.3rem' }}>{isSingleStep ? 'Challenge' : `Phase ${phase}`} Rules</strong>
               🎯 Profit target: {profitTarget}%<br />
               📉 Daily drawdown: max 5%<br />
               📉 Max drawdown: max 10%<br />
@@ -643,7 +645,7 @@ export default function TradePage() {
             <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>🏆</div>
             <h2 style={{ fontFamily: 'Syne, sans-serif', fontWeight: 800, fontSize: '1.8rem', color: '#F0C060', marginBottom: '0.75rem' }}>You Are Funded!</h2>
             <p style={{ color: '#9A9880', marginBottom: '0.5rem', fontSize: '0.9rem' }}>
-              Both phases complete. You are now a FundedBirr trader.
+              {isSingleStep ? 'Challenge complete.' : 'Both phases complete.'} You are now a FundedBirr trader.
             </p>
             <p style={{ color: '#28A86A', marginBottom: '1.5rem', fontSize: '0.9rem', fontWeight: 600 }}>
               80% profit split — payouts every 14 days

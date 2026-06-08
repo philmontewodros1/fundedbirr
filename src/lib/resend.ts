@@ -76,8 +76,9 @@ export async function sendWelcomeEmail(email: string, name: string) {
   }
 }
 
-export async function sendChallengeEmail(email: string, name: string, accountSize: string) {
+export async function sendChallengeEmail(email: string, name: string, accountSize: string, model?: string) {
   if (!process.env.RESEND_API_KEY) return;
+  const isSingleStep = model === '1step';
   try {
     await resend.emails.send({
       from,
@@ -94,11 +95,11 @@ export async function sendChallengeEmail(email: string, name: string, accountSiz
           </div>
           <div class="body">
             <p style="font-size:18px;color:#F5F2E8;font-weight:600;">Your challenge is live, ${name}!</p>
-            <p>Your <strong>${accountSize.toUpperCase()}</strong> evaluation has been activated. You're now in <strong>Phase 1</strong>.</p>
+            <p>Your <strong>${accountSize.toUpperCase()}</strong> evaluation has been activated. You're now in <strong>${isSingleStep ? 'Single Phase' : 'Phase 1'}</strong>.</p>
             <div class="stat-box">
               <div class="stat-row">
                 <div><div class="label">Account Size</div><div class="value">${accountSize.toUpperCase()}</div></div>
-                <div><div class="label">Phase</div><div class="value">1 / 2</div></div>
+                <div><div class="label">Phase</div><div class="value">${isSingleStep ? '1 / 1' : '1 / 2'}</div></div>
               </div>
               <div class="stat-row">
                 <div><div class="label">Profit Target</div><div class="value">10%</div></div>
@@ -110,8 +111,10 @@ export async function sendChallengeEmail(email: string, name: string, accountSiz
               </div>
             </div>
             <p><strong>Your trading objectives:</strong></p>
-            <p>📈 Grow your account by <strong>10%</strong> without breaching the daily (5%) or max (10%) drawdown limits. Trade at least <strong>5 days</strong> and keep each day under 50% of total profit.</p>
-            <p style="margin-bottom:24px;">Pass Phase 1 and you'll advance to Phase 2 (5% target, minimum 3 days). Complete both to become funded!</p>
+            ${isSingleStep
+              ? `<p>📈 Grow your account by <strong>10%</strong> without breaching the daily (5%) or max (10%) drawdown limits. Trade at least <strong>5 days</strong> and keep each day under 50% of total profit. Hit the target and get funded directly!</p>`
+              : `<p>📈 Grow your account by <strong>10%</strong> without breaching the daily (5%) or max (10%) drawdown limits. Trade at least <strong>5 days</strong> and keep each day under 50% of total profit.</p>
+            <p style="margin-bottom:24px;">Pass Phase 1 and you'll advance to Phase 2 (5% target, minimum 3 days). Complete both to become funded!</p>`}
             <div style="text-align:center;margin:24px 0;">
               <a href="https://fundedbirr.com/dashboard/trade" class="btn btn-gold">Start Trading</a>
             </div>

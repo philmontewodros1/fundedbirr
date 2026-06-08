@@ -1,4 +1,8 @@
+'use client';
+
 import Link from 'next/link';
+import { useState } from 'react';
+import { CHALLENGE_MODELS } from '@/lib/constants';
 
 const PLANS = [
   {
@@ -83,6 +87,8 @@ const FEATURES = [
 ];
 
 export default function PricingPage() {
+  const [selectedModel, setSelectedModel] = useState<'2step' | '1step'>('2step');
+
   return (
     <>
       <section style={{ padding: '5rem 2rem 2rem', maxWidth: '1100px', margin: '0 auto', textAlign: 'center' }}>
@@ -136,6 +142,50 @@ export default function PricingPage() {
       </section>
 
       <section style={{ padding: '0 2rem 4rem', maxWidth: '1100px', margin: '0 auto' }}>
+        <div style={{
+          display: 'flex',
+          justifyContent: 'center',
+          gap: '0.5rem',
+          marginBottom: '2rem',
+          background: 'rgba(255,255,255,0.03)',
+          borderRadius: '12px',
+          padding: '0.35rem',
+          maxWidth: '420px',
+          marginLeft: 'auto',
+          marginRight: 'auto',
+        }}>
+          {(Object.entries(CHALLENGE_MODELS) as [string, { label: string, description: string }][]).map(([key, model]) => (
+            <button
+              key={key}
+              onClick={() => setSelectedModel(key as '2step' | '1step')}
+              style={{
+                flex: 1,
+                padding: '0.6rem 1rem',
+                borderRadius: '10px',
+                border: 'none',
+                background: selectedModel === key ? 'var(--gold)' : 'transparent',
+                color: selectedModel === key ? 'var(--dark)' : 'var(--text-muted)',
+                fontFamily: "'Syne', sans-serif",
+                fontWeight: 700,
+                fontSize: '0.78rem',
+                cursor: 'pointer',
+                transition: 'all 0.2s',
+              }}
+            >
+              {model.label}
+            </button>
+          ))}
+        </div>
+        <p style={{
+          textAlign: 'center',
+          color: 'var(--text-muted)',
+          fontSize: '0.82rem',
+          marginTop: '-1rem',
+          marginBottom: '2.5rem',
+        }}>
+          {CHALLENGE_MODELS[selectedModel].description}
+        </p>
+
         <div style={{
           display: 'grid',
           gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
@@ -247,7 +297,7 @@ export default function PricingPage() {
               </div>
 
               <Link
-                href={`/auth/register?plan=${plan.id}`}
+                href={`/auth/register?plan=${plan.id}&model=${selectedModel}`}
                 className="btn-primary no-underline"
                 style={{
                   display: 'block',

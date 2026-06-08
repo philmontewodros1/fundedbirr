@@ -6,7 +6,7 @@ import { CHALLENGE_PRICES } from '@/lib/constants';
 
 export async function POST(req: Request) {
   try {
-    const { challengeType, telebirrTxRef, telebirrPhone, fullName, screenshotUrl } = await req.json();
+    const { challengeType, model, telebirrTxRef, telebirrPhone, fullName, screenshotUrl } = await req.json();
 
     if (!CHALLENGE_PRICES[challengeType]) {
       return NextResponse.json({ error: 'Invalid challenge type' }, { status: 400 });
@@ -50,6 +50,7 @@ export async function POST(req: Request) {
       .insert({
         user_id: user.id,
         challenge_type: challengeType,
+        model: model || '2step',
         amount_etb: amount,
         telebirr_tx_ref: telebirrTxRef,
         telebirr_phone: telebirrPhone,
