@@ -141,6 +141,27 @@ export async function POST(req: NextRequest) {
         }
 
         if (newStatus !== 'failed') {
+          const { data: userKyc } = await admin
+            .from('users')
+            .select('kyc_status')
+            .eq('id', user_id)
+            .single()
+
+          const kycVerified = userKyc?.kyc_status === 'verified'
+
+          if (!kycVerified) {
+            const msg = 'KYC verification required before advancing. Upload your ID in the KYC section.'
+            return NextResponse.json({
+              success: true, pnl, new_balance: newBalance, new_equity: newEquity,
+              challenge_status: 'kyc_required', phase: newPhase,
+              fail_reason: msg,
+              daily_dd_pct: Math.round(dailyDDPct * 100) / 100,
+              max_dd_pct: Math.round(maxDDPct * 100) / 100,
+              profit_pct: Math.round(profitPct * 100) / 100,
+              trading_days: tradingDaysCount,
+            })
+          }
+
           if (challengeModel === '1step') {
             newStatus = 'passed'
             await admin

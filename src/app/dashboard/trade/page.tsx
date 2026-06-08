@@ -74,7 +74,7 @@ export default function TradePage() {
   const [lotSize, setLotSize] = useState<number>(0.10)
   const [slInput, setSlInput] = useState<string>('')
   const [tpInput, setTpInput] = useState<string>('')
-  const [overlay, setOverlay] = useState<null | 'failed' | 'passed' | 'phase2'>(null)
+  const [overlay, setOverlay] = useState<null | 'failed' | 'passed' | 'phase2' | 'kyc_required'>(null)
   const [failReason, setFailReason] = useState<string>('')
   const [loading, setLoading] = useState(false)
   const [userId, setUserId] = useState<string>('')
@@ -318,6 +318,8 @@ export default function TradePage() {
       if (data.challenge_status === 'failed') {
         setFailReason(data.fail_reason || 'Drawdown limit reached')
         setOverlay('failed')
+      } else if (data.challenge_status === 'kyc_required') {
+        setOverlay('kyc_required')
       } else if (data.challenge_status === 'phase2') {
         setOverlay('phase2')
       } else if (data.challenge_status === 'passed') {
@@ -636,6 +638,26 @@ export default function TradePage() {
             </p>
             <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center' }}>
               <a href="/dashboard/trade" style={{ background: '#C9912A', color: '#0D0F0A', padding: '0.75rem 1.5rem', borderRadius: '8px', fontFamily: 'Syne, sans-serif', fontWeight: 700, textDecoration: 'none', fontSize: '0.9rem' }}>Continue Trading</a>
+              <a href="/dashboard" style={{ background: '#1E2218', color: '#F5F2E8', padding: '0.75rem 1.5rem', borderRadius: '8px', fontFamily: 'Syne, sans-serif', fontWeight: 700, textDecoration: 'none', fontSize: '0.9rem' }}>Dashboard</a>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* KYC REQUIRED OVERLAY */}
+      {overlay === 'kyc_required' && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
+          <div style={{ background: '#151008', border: '1px solid #C9912A', borderRadius: '20px', padding: '3rem', textAlign: 'center', maxWidth: '420px' }}>
+            <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>📋</div>
+            <h2 style={{ fontFamily: 'Syne, sans-serif', fontWeight: 800, fontSize: '1.8rem', color: '#F0C060', marginBottom: '0.75rem' }}>KYC Required</h2>
+            <p style={{ color: '#9A9880', marginBottom: '1.5rem', fontSize: '0.9rem' }}>
+              You hit the target! Before advancing, you must verify your identity.
+            </p>
+            <p style={{ color: '#9A9880', marginBottom: '2rem', fontSize: '0.82rem' }}>
+              Upload a valid Ethiopian ID (Kebele, Passport, or Driving License). Your profit is saved — proceed to KYC to continue.
+            </p>
+            <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center' }}>
+              <a href="/dashboard/kyc" style={{ background: '#C9912A', color: '#0D0F0A', padding: '0.75rem 1.5rem', borderRadius: '8px', fontFamily: 'Syne, sans-serif', fontWeight: 700, textDecoration: 'none', fontSize: '0.9rem' }}>Upload ID Now</a>
               <a href="/dashboard" style={{ background: '#1E2218', color: '#F5F2E8', padding: '0.75rem 1.5rem', borderRadius: '8px', fontFamily: 'Syne, sans-serif', fontWeight: 700, textDecoration: 'none', fontSize: '0.9rem' }}>Dashboard</a>
             </div>
           </div>

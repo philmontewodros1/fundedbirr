@@ -30,7 +30,7 @@ export async function GET() {
 
   const { data: profile } = await admin
     .from('users')
-    .select('full_name, email, affiliate_code')
+    .select('full_name, email, affiliate_code, kyc_status')
     .eq('id', user.id)
     .single();
 

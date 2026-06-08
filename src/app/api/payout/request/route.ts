@@ -40,6 +40,18 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'No funded challenge found. Pass both phases first.' }, { status: 400 });
   }
 
+  const { data: profile } = await supabase
+    .from('users')
+    .select('kyc_status')
+    .eq('id', user.id)
+    .single();
+
+  if (profile?.kyc_status !== 'verified') {
+    return NextResponse.json({
+      error: 'KYC verification required before payout. Complete KYC in your dashboard settings.',
+    }, { status: 400 });
+  }
+
   const grossProfit = (challenge.current_balance || challenge.virtual_balance) - challenge.virtual_balance;
   const maxPayoutUsd = grossProfit * 0.80;
   const maxPayoutEtb = Math.floor(maxPayoutUsd * ETB_RATE);

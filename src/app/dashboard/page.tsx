@@ -31,6 +31,7 @@ interface UserProfile {
   full_name: string;
   email: string;
   affiliate_code: string;
+  kyc_status: string;
 }
 
 export default function DashboardPage() {
@@ -228,6 +229,41 @@ export default function DashboardPage() {
               </div>
             </div>
           </div>
+
+          {/* KYC Status */}
+          {profile.kyc_status !== 'verified' && (
+            <div style={{
+              background: 'var(--dark-2)', border: '1px solid rgba(201,145,42,0.2)',
+              borderRadius: '14px', padding: '1rem 1.5rem', marginBottom: '1.5rem',
+              display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem',
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                <span style={{ fontSize: '1.25rem' }}>
+                  {profile.kyc_status === 'pending' ? '⏳' : profile.kyc_status === 'rejected' ? '❌' : '📋'}
+                </span>
+                <div>
+                  <div style={{ fontSize: '0.85rem', fontWeight: 600 }}>
+                    {profile.kyc_status === 'pending' ? 'KYC Under Review' :
+                     profile.kyc_status === 'rejected' ? 'KYC Rejected' : 'KYC Required'}
+                  </div>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                    {profile.kyc_status === 'pending' ? 'Your document is being reviewed.' :
+                     profile.kyc_status === 'rejected' ? 'Your ID was rejected. Please re-upload.' :
+                     'Upload your ID to proceed after passing Phase 1.'}
+                  </div>
+                </div>
+              </div>
+              <a href="/dashboard/kyc" style={{
+                background: profile.kyc_status === 'rejected' ? 'rgba(255,107,107,0.15)' : 'rgba(201,145,42,0.1)',
+                color: profile.kyc_status === 'rejected' ? '#ff6b6b' : 'var(--accent)',
+                border: `1px solid ${profile.kyc_status === 'rejected' ? 'rgba(255,107,107,0.2)' : 'rgba(201,145,42,0.2)'}`,
+                padding: '0.4rem 1rem', borderRadius: '8px', fontSize: '0.78rem',
+                textDecoration: 'none', whiteSpace: 'nowrap',
+              }}>
+                {profile.kyc_status === 'pending' ? 'View Status' : 'Upload Now →'}
+              </a>
+            </div>
+          )}
 
           {/* Two columns */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
