@@ -86,6 +86,7 @@ export default function TradePage() {
   const tvSymbol = selectedSymbol === 'BTCUSD' ? 'BINANCE:BTCUSDT' : selectedSymbol === 'XAUUSD' ? 'OANDA:XAUUSD' : `OANDA:${selectedSymbol}`
 
   const [tvChartId] = useState(() => 'tv_chart_' + Math.random().toString(36).slice(2, 8))
+  const [tvReady, setTvReady] = useState(false)
 
   const [lastChallengeId, setLastChallengeId] = useState<string>('')
 
@@ -142,19 +143,22 @@ export default function TradePage() {
     fetchHistory()
   }, [fetchPositions, fetchHistory])
 
-  // load TradingView script once
+  // load TradingView script once, signal when ready
   useEffect(() => {
-    if (typeof (window as any).TradingView !== 'undefined') return
+    if (typeof (window as any).TradingView !== 'undefined') {
+      setTvReady(true)
+      return
+    }
     const script = document.createElement('script')
     script.src = 'https://s3.tradingview.com/tv.js'
     script.async = true
+    script.onload = () => setTvReady(true)
     document.head.appendChild(script)
   }, [])
 
   // recreate widget on symbol change (setSymbol is unreliable)
   useEffect(() => {
-    if (!chartRef.current) return
-    if (typeof (window as any).TradingView === 'undefined') return
+    if (!chartRef.current || !tvReady) return
 
     if (tvWidgetRef.current) {
       try { tvWidgetRef.current.remove() } catch (_) {}
@@ -202,7 +206,7 @@ export default function TradePage() {
         tvWidgetRef.current = null
       }
     }
-  }, [selectedSymbol, tvSymbol])
+  }, [selectedSymbol, tvSymbol, tvReady])
 
   useEffect(() => {
     const poll = async () => {
