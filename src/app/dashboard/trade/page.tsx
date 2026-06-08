@@ -62,6 +62,7 @@ export default function TradePage() {
   const tvWidgetRef = useRef<any>(null)
 
   const [selectedSymbol, setSelectedSymbol] = useState('XAUUSD')
+  const [debouncedSymbol, setDebouncedSymbol] = useState('XAUUSD')
   const [price, setPrice] = useState<number>(0)
   const [bid, setBid] = useState<number>(0)
   const [ask, setAsk] = useState<number>(0)
@@ -83,10 +84,15 @@ export default function TradePage() {
   const minDays = phase === 1 ? 5 : 3
   const instr = INSTRUMENTS[selectedSymbol]
   const spread = SPREAD[selectedSymbol] || 0.30
-  const tvSymbol = selectedSymbol === 'BTCUSD' ? 'BINANCE:BTCUSDT' : selectedSymbol === 'XAUUSD' ? 'OANDA:XAUUSD' : `OANDA:${selectedSymbol}`
+  const tvSymbol = debouncedSymbol === 'BTCUSD' ? 'BINANCE:BTCUSDT' : debouncedSymbol === 'XAUUSD' ? 'OANDA:XAUUSD' : `OANDA:${debouncedSymbol}`
+
+  // debounce symbol changes for TradingView (prevents widget instance accumulation)
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedSymbol(selectedSymbol), 300)
+    return () => clearTimeout(timer)
+  }, [selectedSymbol])
 
   const [tvChartId] = useState(() => 'tv_chart_' + Math.random().toString(36).slice(2, 8))
-  const [tvReady, setTvReady] = useState(false)
 
   const [lastChallengeId, setLastChallengeId] = useState<string>('')
 
@@ -143,62 +149,63 @@ export default function TradePage() {
     fetchHistory()
   }, [fetchPositions, fetchHistory])
 
-  // load TradingView script once, signal when ready
-  useEffect(() => {
-    if (typeof (window as any).TradingView !== 'undefined') {
-      setTvReady(true)
-      return
-    }
-    const script = document.createElement('script')
-    script.src = 'https://s3.tradingview.com/tv.js'
-    script.async = true
-    script.onload = () => setTvReady(true)
-    document.head.appendChild(script)
-  }, [])
-
   // recreate widget on symbol change (setSymbol is unreliable)
   useEffect(() => {
-    if (!chartRef.current || !tvReady) return
-
-    if (tvWidgetRef.current) {
-      try { tvWidgetRef.current.remove() } catch (_) {}
-      tvWidgetRef.current = null
-    }
+    if (!chartRef.current) return
 
     const id = tvChartId
     chartRef.current.id = id
-    const el = document.getElementById(id)
-    if (el) el.innerHTML = ''
 
-    const widget = new (window as any).TradingView.widget({
-      container_id: id,
-      width: '100%',
-      height: 380,
-      symbol: tvSymbol,
-      interval: '60',
-      timezone: 'Africa/Addis_Ababa',
-      theme: 'dark',
-      style: '1',
-      locale: 'en',
-      toolbar_bg: '#151810',
-      enable_publishing: false,
-      hide_side_toolbar: false,
-      allow_symbol_change: false,
-      details: true,
-      studies: [
-        'RSI@tv-basicstudies',
-        'MACD@tv-basicstudies',
-        'Stochastic@tv-basicstudies',
-        'BB@tv-basicstudies',
-      ],
-      show_popup_button: true,
-      popup_width: '1000',
-      popup_height: '650',
-      support_host: 'https://www.tradingview.com',
-    })
-    widget.onChartReady(() => {
-      tvWidgetRef.current = widget
-    })
+    const createWidget = () => {
+      if (typeof (window as any).TradingView === 'undefined') return
+
+      if (tvWidgetRef.current) {
+        try { tvWidgetRef.current.remove() } catch (_) {}
+        tvWidgetRef.current = null
+      }
+      const el = document.getElementById(id)
+      if (el) el.innerHTML = ''
+
+      const widget = new (window as any).TradingView.widget({
+        container_id: id,
+        width: '100%',
+        height: 380,
+        symbol: tvSymbol,
+        interval: '60',
+        timezone: 'Africa/Addis_Ababa',
+        theme: 'dark',
+        style: '1',
+        locale: 'en',
+        toolbar_bg: '#151810',
+        enable_publishing: false,
+        hide_side_toolbar: false,
+        allow_symbol_change: false,
+        details: true,
+        studies: [
+          'RSI@tv-basicstudies',
+          'MACD@tv-basicstudies',
+          'Stochastic@tv-basicstudies',
+          'BB@tv-basicstudies',
+        ],
+        show_popup_button: true,
+        popup_width: '1000',
+        popup_height: '650',
+        support_host: 'https://www.tradingview.com',
+      })
+      if (widget) {
+        tvWidgetRef.current = widget
+      }
+    }
+
+    if (typeof (window as any).TradingView !== 'undefined') {
+      createWidget()
+    } else {
+      const script = document.createElement('script')
+      script.src = 'https://s3.tradingview.com/tv.js'
+      script.async = true
+      script.onload = createWidget
+      document.head.appendChild(script)
+    }
 
     return () => {
       if (tvWidgetRef.current) {
@@ -206,7 +213,7 @@ export default function TradePage() {
         tvWidgetRef.current = null
       }
     }
-  }, [selectedSymbol, tvSymbol, tvReady])
+  }, [selectedSymbol, tvSymbol])
 
   useEffect(() => {
     const poll = async () => {
@@ -356,6 +363,34 @@ export default function TradePage() {
           )}
         </div>
       </div>
+
+      {!challenge && lastChallengeId && (
+        <div style={{
+          background: 'rgba(220,50,50,0.08)',
+          borderBottom: '1px solid rgba(220,50,50,0.2)',
+          padding: '0.75rem 1.5rem',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          gap: '1rem',
+        }}>
+          <div>
+            <div style={{ fontWeight: 600, color: '#ff6b6b', marginBottom: '2px', fontSize: '0.85rem' }}>
+              Challenge ended
+            </div>
+            <div style={{ fontSize: '0.78rem', color: '#9A9880' }}>
+              Review your trade history below. Ready to try again?
+            </div>
+          </div>
+          <a href="/pricing" style={{
+            background: '#C9912A', color: '#0D0F0A', padding: '0.5rem 1.25rem',
+            borderRadius: '8px', fontFamily: 'Syne, sans-serif', fontWeight: 700,
+            textDecoration: 'none', fontSize: '0.8rem', whiteSpace: 'nowrap',
+          }}>
+            New Challenge →
+          </a>
+        </div>
+      )}
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 300px', gap: 0, height: 'calc(100vh - 52px)' }}>
 
