@@ -1,70 +1,126 @@
 import { NextResponse } from 'next/server';
-import { requireAdmin } from '@/lib/admin-guard';
+import { withAdmin, adminError, adminSuccess } from '@/lib/admin-guard';
+import { logAdminAction } from '@/lib/admin-audit';
 import { sendPayoutApprovedEmail } from '@/lib/resend';
 
 export const dynamic = 'force-dynamic';
 
-export async function GET() {
-  const auth = await requireAdmin();
-  if (auth.error) return auth.error;
+export async function GET(req: Request) {
+  return withAdmin(async ({ adminClient }) => {
+    const url = new URL(req.url);
+    const status = url.searchParams.get('status') || '';
+    const search = url.searchParams.get('search') || '';
+    const page = parseInt(url.searchParams.get('page') || '1');
+    const limit = Math.min(parseInt(url.searchParams.get('limit') || '50'), 200);
+    const offset = (page - 1) * limit;
 
-  const { adminClient } = auth;
-  const { data: payouts, error } = await adminClient
-    .from('payouts')
-    .select('*, users!inner(full_name, email)')
-    .order('requested_at', { ascending: false });
+    let query = adminClient
+      .from('payouts')
+      .select('*, users!inner(full_name, email)', { count: 'exact' })
+      .order('requested_at', { ascending: false });
 
-  if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
-  }
+    if (status) {
+      query = query.eq('status', status);
+    }
 
-  return NextResponse.json({ payouts });
+    if (search) {
+      query = query.or(`users.full_name.ilike.%${search}%,users.email.ilike.%${search}%`);
+    }
+
+    const { data: payouts, error, count } = await query.range(offset, offset + limit - 1);
+
+    if (error) {
+      return adminError(error.message, 500);
+    }
+
+    return NextResponse.json({ payouts, total: count || 0, page, limit });
+  });
 }
 
 export async function PATCH(req: Request) {
-  const auth = await requireAdmin();
-  if (auth.error) return auth.error;
+  return withAdmin(async ({ adminClient, user: admin }) => {
+    const { id, status, rejectionReason } = await req.json();
 
-  const { adminClient } = auth;
-  const { id, status, rejectionReason } = await req.json();
+    if (!id || !['approved', 'rejected', 'paid'].includes(status)) {
+      return adminError('Invalid request');
+    }
 
-  const { data: payout } = await adminClient
-    .from('payouts')
-    .select('*, users!inner(full_name, email)')
-    .eq('id', id)
-    .single();
+    const { data: payout } = await adminClient
+      .from('payouts')
+      .select('*, users!inner(full_name, email)')
+      .eq('id', id)
+      .single();
 
-  if (!payout) {
-    return NextResponse.json({ error: 'Payout not found' }, { status: 404 });
-  }
+    if (!payout) {
+      return adminError('Payout not found', 404);
+    }
 
-  const update: Record<string, any> = { status };
-  if (status === 'paid') {
-    update.paid_at = new Date().toISOString();
-  }
-  if (status === 'rejected' && rejectionReason) {
-    update.rejection_reason = rejectionReason;
-  }
+    if (status === 'paid' && payout.status !== 'approved') {
+      return adminError('Cannot mark unapproved payout as paid');
+    }
 
-  const { error } = await adminClient
-    .from('payouts')
-    .update(update)
-    .eq('id', id);
+    const VALID_TRANSITIONS: Record<string, string[]> = {
+      pending: ['approved', 'rejected'],
+      approved: ['paid', 'rejected'],
+      paid: [],
+      rejected: [],
+    };
 
-  if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
-  }
+    if (!VALID_TRANSITIONS[payout.status]?.includes(status)) {
+      return adminError(`Cannot transition from ${payout.status} to ${status}`);
+    }
 
-  if ((status === 'approved' || status === 'paid') && payout.users) {
-    try {
-      await sendPayoutApprovedEmail(
-        payout.users.email,
-        payout.users.full_name,
-        payout.amount_etb,
-        payout.method
-      );
-    } catch (_) {}
-  }
+    const update: Record<string, any> = { status };
+    if (status === 'paid') {
+      update.paid_at = new Date().toISOString();
+      update.paid_by = admin.id;
+    }
+    if (status === 'approved') {
+      update.approved_at = new Date().toISOString();
+      update.approved_by = admin.id;
+    }
+    if (status === 'rejected') {
+      if (rejectionReason) update.rejection_reason = rejectionReason;
+      update.rejected_at = new Date().toISOString();
+      update.rejected_by = admin.id;
+    }
 
-  return NextResponse.json({ success: true });
+    const { error } = await adminClient
+      .from('payouts')
+      .update(update)
+      .eq('id', id);
+
+    if (error) {
+      return adminError(error.message, 500);
+    }
+
+    await logAdminAction({
+      adminId: admin.id,
+      adminEmail: admin.email,
+      action: `payout_${status}`,
+      targetType: 'payout',
+      targetId: id,
+      details: {
+        user_id: payout.user_id,
+        user_name: payout.users?.full_name,
+        amount_etb: payout.amount_etb,
+        method: payout.method,
+        previous_status: payout.status,
+        rejection_reason: rejectionReason || null,
+      },
+    });
+
+    if ((status === 'approved' || status === 'paid') && payout.users) {
+      try {
+        await sendPayoutApprovedEmail(
+          payout.users.email,
+          payout.users.full_name,
+          payout.amount_etb,
+          payout.method
+        );
+      } catch (_) {}
+    }
+
+    return adminSuccess({ status });
+  });
 }

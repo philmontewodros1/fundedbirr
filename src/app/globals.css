@@ -116,3 +116,48 @@ body {
 .hover-nav:hover {
   color: var(--text) !important;
 }
+
+/* Admin button utilities */
+.btn-green-sm {
+  background: rgba(29,122,74,0.15);
+  color: var(--green-light);
+  border: 1px solid rgba(29,122,74,0.25);
+  padding: 4px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.75rem;
+  transition: all 0.15s;
+}
+.btn-green-sm:hover {
+  background: rgba(29,122,74,0.25);
+}
+
+.btn-red-sm {
+  background: rgba(255,107,107,0.1);
+  color: #ff6b6b;
+  border: 1px solid rgba(255,107,107,0.2);
+  padding: 4px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.75rem;
+  transition: all 0.15s;
+}
+.btn-red-sm:hover {
+  background: rgba(255,107,107,0.2);
+}
+
+.btn-yellow-sm {
+  background: rgba(201,145,42,0.1);
+  color: var(--accent);
+  border: 1px solid rgba(201,145,42,0.2);
+  padding: 4px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.75rem;
+  text-decoration: none;
+  display: inline-block;
+  transition: all 0.15s;
+}
+.btn-yellow-sm:hover {
+  background: rgba(201,145,42,0.2);
+}

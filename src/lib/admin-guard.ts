@@ -1,9 +1,14 @@
 import { createServerClient } from '@supabase/ssr'
-import { createClient } from '@supabase/supabase-js'
+import { getSupabaseAdmin } from '@/lib/supabase-admin'
 import { cookies } from 'next/headers'
 import { NextResponse } from 'next/server'
 
-export async function requireAdmin() {
+export interface AdminSession {
+  user: { id: string; email: string }
+  adminClient: ReturnType<typeof getSupabaseAdmin>
+}
+
+export async function withAdmin<T>(handler: (session: AdminSession) => Promise<T | NextResponse>): Promise<NextResponse | T> {
   const cookieStore = cookies()
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -16,25 +21,30 @@ export async function requireAdmin() {
     }
   )
 
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) {
-    return { error: NextResponse.json({ error: 'Unauthorized' }, { status: 401 }) }
+  const { data: { user }, error: authError } = await supabase.auth.getUser()
+  if (authError || !user) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
-  const adminClient = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  )
+  const adminClient = getSupabaseAdmin()
 
-  const { data: profile } = await adminClient
+  const { data: profile, error: profileError } = await adminClient
     .from('users')
-    .select('is_admin')
+    .select('is_admin, email')
     .eq('id', user.id)
     .single()
 
-  if (!profile?.is_admin) {
-    return { error: NextResponse.json({ error: 'Forbidden' }, { status: 403 }) }
+  if (profileError || !profile?.is_admin) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
 
-  return { user, adminClient }
+  return handler({ user: { id: user.id, email: profile.email || user.email || '' }, adminClient })
+}
+
+export function adminError(message: string, status: number = 400) {
+  return NextResponse.json({ error: message }, { status })
+}
+
+export function adminSuccess(data?: Record<string, any>) {
+  return NextResponse.json({ success: true, ...data })
 }
