@@ -57,7 +57,7 @@ export async function PATCH(req: Request) {
 
     const challengeType = payment.challenge_type || 'pro';
     const challengeModel = payment.model || '2step';
-    const config = getChallengeConfig(challengeType);
+    const config = getChallengeConfig(challengeType, challengeModel);
 
     const { error: challengeError } = await adminClient.from('challenges').insert({
       user_id: payment.user_id,

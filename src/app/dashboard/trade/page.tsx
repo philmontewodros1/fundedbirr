@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState, useCallback } from 'react'
-import { INSTRUMENTS, INSTRUMENT_LIST, getContractSize } from '@/lib/constants'
+import { INSTRUMENTS, INSTRUMENT_LIST, getContractSize, MODEL_CONFIG } from '@/lib/constants'
 
 interface Trade {
   id: string
@@ -82,8 +82,11 @@ export default function TradePage() {
 
   const phase = challenge?.phase || 1
   const isSingleStep = challenge?.model === '1step'
-  const profitTarget = phase === 1 ? 10 : 5
-  const minDays = phase === 1 ? 5 : 3
+  const modelCfg = MODEL_CONFIG[challenge?.model || '2step'] || MODEL_CONFIG['2step']
+  const profitTarget = phase === 1 ? modelCfg.phase1ProfitTarget : (modelCfg.phase2ProfitTarget || 5)
+  const minDays = modelCfg.minTradingDays
+  const dailyDdLimit = modelCfg.maxDailyLossPct
+  const maxDdLimit = modelCfg.maxLossPct
   const instr = INSTRUMENTS[selectedSymbol]
   const spread = SPREAD[selectedSymbol] || 0.30
   const tvSymbol = debouncedSymbol === 'BTCUSD' ? 'BINANCE:BTCUSDT' : debouncedSymbol === 'XAUUSD' ? 'OANDA:XAUUSD' : `OANDA:${debouncedSymbol}`
@@ -543,8 +546,8 @@ export default function TradePage() {
             </div>
 
             {[
-              { label: 'Daily DD', value: dailyDDPct, max: 5, suffix: '%' },
-              { label: 'Max DD', value: maxDDPct, max: 10, suffix: '%' },
+              { label: 'Daily DD', value: dailyDDPct, max: dailyDdLimit, suffix: '%' },
+              { label: 'Max DD', value: maxDDPct, max: maxDdLimit, suffix: '%' },
               { label: 'Profit', value: profitPct, max: profitTarget, suffix: '%', positive: true }
             ].map(({ label, value, max, suffix, positive }) => (
               <div key={label} style={{ marginBottom: '0.85rem' }}>
@@ -580,7 +583,7 @@ export default function TradePage() {
             }}>
               <div style={{ fontSize: '0.65rem', color: '#9A9880', marginBottom: '0.25rem' }}>Consistency Rule</div>
               <div style={{ fontSize: '0.78rem', color: '#9A9880' }}>
-                No day &gt; 50% of total profits
+                No day &gt; {modelCfg.consistencyPct}% of total profits
               </div>
             </div>
           </div>
@@ -589,11 +592,12 @@ export default function TradePage() {
             <div style={{ fontSize: '0.72rem', color: '#9A9880', lineHeight: 1.6 }}>
               <strong style={{ color: '#E8B84B', display: 'block', marginBottom: '0.3rem' }}>{isSingleStep ? 'Challenge' : `Phase ${phase}`} Rules</strong>
               🎯 Profit target: {profitTarget}%<br />
-              📉 Daily drawdown: max 5%<br />
-              📉 Max drawdown: max 10%<br />
+              📉 Daily drawdown: max {dailyDdLimit}%<br />
+              📉 Max drawdown: max {maxDdLimit}%<br />
               📅 Min trading days: {minDays}<br />
-              📊 Consistency: ≤50% per day<br />
-              💰 Spread: {spread} pts
+              📊 Consistency: ≤{modelCfg.consistencyPct}% per day<br />
+              💰 Spread: {spread} pts<br />
+              🔄 Leverage: 1:{modelCfg.leverage}
             </div>
           </div>
         </div>
@@ -621,14 +625,14 @@ export default function TradePage() {
             <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>🏆</div>
             <h2 style={{ fontFamily: 'Syne, sans-serif', fontWeight: 800, fontSize: '1.8rem', color: '#F0C060', marginBottom: '0.75rem' }}>Phase 1 Passed!</h2>
             <p style={{ color: '#9A9880', marginBottom: '0.5rem', fontSize: '0.9rem' }}>
-              You hit the 10% target in {tradingDays} trading days.
+              You hit the {modelCfg.phase1ProfitTarget}% target in {tradingDays} trading days.
             </p>
             <p style={{ color: '#28A86A', marginBottom: '2rem', fontSize: '0.9rem', fontWeight: 600 }}>
               Moving to Phase 2 — Verification
             </p>
             <p style={{ color: '#9A9880', marginBottom: '2rem', fontSize: '0.82rem' }}>
-              Your balance has reset. Now grow 5% while respecting the same risk rules.
-              Minimum 3 trading days.
+              Your balance has reset. Now grow {modelCfg.phase2ProfitTarget}% while respecting the same risk rules.
+              Minimum {modelCfg.minTradingDays} trading days.
             </p>
             <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center' }}>
               <a href="/dashboard/trade" style={{ background: '#C9912A', color: '#0D0F0A', padding: '0.75rem 1.5rem', borderRadius: '8px', fontFamily: 'Syne, sans-serif', fontWeight: 700, textDecoration: 'none', fontSize: '0.9rem' }}>Continue Trading</a>

@@ -3,7 +3,7 @@ import { createServerClient } from '@supabase/ssr'
 import { createClient } from '@supabase/supabase-js'
 import { cookies } from 'next/headers'
 import { sendChallengeFailedEmail, sendChallengePassedEmail } from '@/lib/resend'
-import { PLAN_LABELS, getContractSize } from '@/lib/constants'
+import { PLAN_LABELS, getContractSize, MODEL_CONFIG } from '@/lib/constants'
 
 export async function POST(req: NextRequest) {
   try {
@@ -86,6 +86,7 @@ export async function POST(req: NextRequest) {
     }
 
     const challengeModel: string = challenge.model || '2step'
+    const config = MODEL_CONFIG[challengeModel] || MODEL_CONFIG['2step']
     const startingBalance = challenge.virtual_balance
     let newStatus: string = challenge.status
     let newPhase: number = challenge.phase || 1
@@ -93,22 +94,22 @@ export async function POST(req: NextRequest) {
 
     const dailyLoss = dailyStartEquity - newEquity
     const dailyDDPct = (dailyLoss / dailyStartEquity) * 100
-    if (dailyDDPct >= 5) {
+    if (dailyDDPct >= config.maxDailyLossPct) {
       newStatus = 'failed'
-      failReason = 'Daily drawdown limit (5%) reached'
+      failReason = `Daily drawdown limit (${config.maxDailyLossPct}%) reached`
     }
 
     const totalLoss = startingBalance - newEquity
     const maxDDPct = (totalLoss / startingBalance) * 100
-    if (maxDDPct >= 10) {
+    if (maxDDPct >= config.maxLossPct) {
       newStatus = 'failed'
-      failReason = 'Maximum drawdown limit (10%) reached'
+      failReason = `Maximum drawdown limit (${config.maxLossPct}%) reached`
     }
 
     if (newStatus !== 'failed') {
       const profitPct = ((newBalance - startingBalance) / startingBalance) * 100
 
-      if (newPhase === 1 && profitPct >= 10) {
+      if (newPhase === 1 && profitPct >= config.phase1ProfitTarget) {
         const { data: trades } = await admin
           .from('trades')
           .select('profit_loss, closed_at')
@@ -116,7 +117,9 @@ export async function POST(req: NextRequest) {
           .eq('status', 'closed')
           .order('closed_at', { ascending: true })
 
-        if (trades && trades.length >= 5) {
+        const consistencyThreshold = (config.consistencyPct || 50) / 100
+
+        if (trades && trades.length >= config.minTradingDays) {
           const totalProfit = trades.reduce((sum, t) => sum + Math.max(0, t.profit_loss), 0)
           if (totalProfit > 0) {
             const dailyProfits: Record<string, number> = {}
@@ -127,13 +130,13 @@ export async function POST(req: NextRequest) {
               }
             })
             const maxDayProfit = Math.max(...Object.values(dailyProfits), 0)
-            if (maxDayProfit / totalProfit > 0.5) {
-              failReason = 'Consistency rule failed — one day exceeded 50% of total profits'
+            if (maxDayProfit / totalProfit > consistencyThreshold) {
+              failReason = `Consistency rule failed — one day exceeded ${config.consistencyPct}% of total profits`
               newStatus = 'failed'
             }
           }
         } else {
-          failReason = 'Minimum 5 trading days required for Phase 1'
+          failReason = `Minimum ${config.minTradingDays} trading days required for Phase 1`
           newStatus = 'failed'
         }
 
@@ -219,7 +222,9 @@ export async function POST(req: NextRequest) {
           .eq('status', 'closed')
           .order('closed_at', { ascending: true })
 
-        if (trades && trades.length >= 3) {
+        const consistencyThreshold = (config.consistencyPct || 50) / 100
+
+        if (trades && trades.length >= config.minTradingDays) {
           const totalProfit = trades.reduce((sum, t) => sum + Math.max(0, t.profit_loss), 0)
           if (totalProfit > 0) {
             const dailyProfits: Record<string, number> = {}
@@ -230,17 +235,17 @@ export async function POST(req: NextRequest) {
               }
             })
             const maxDayProfit = Math.max(...Object.values(dailyProfits), 0)
-            if (maxDayProfit / totalProfit > 0.5) {
-              failReason = 'Consistency rule failed — one day exceeded 50% of total profits'
+            if (maxDayProfit / totalProfit > consistencyThreshold) {
+              failReason = `Consistency rule failed — one day exceeded ${config.consistencyPct}% of total profits`
               newStatus = 'failed'
             }
           }
         } else {
-          failReason = 'Minimum 3 trading days required for Phase 2'
+          failReason = `Minimum ${config.minTradingDays} trading days required for Phase 2`
           newStatus = 'failed'
         }
 
-        if (newStatus !== 'failed' && profitPct >= 5) {
+        if (newStatus !== 'failed' && config.phase2ProfitTarget && profitPct >= config.phase2ProfitTarget) {
           newStatus = 'passed'
           await admin
             .from('challenges')

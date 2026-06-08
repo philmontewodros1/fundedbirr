@@ -52,7 +52,7 @@ export async function sendWelcomeEmail(email: string, name: string) {
               </div>
               <div style="margin-bottom:16px;">
                 <div style="font-size:28px;margin-bottom:8px;">2️⃣</div>
-                <p style="margin:0;"><strong>Pass the evaluation</strong> — Hit 10% profit in Phase 1, then 5% in Phase 2 while respecting risk rules.</p>
+                <p style="margin:0;"><strong>Pass the evaluation</strong> — Choose 1-Step (10% target) or 2-Step (8% → 5% targets) while respecting drawdown limits.</p>
               </div>
               <div>
                 <div style="font-size:28px;margin-bottom:8px;">3️⃣</div>
@@ -79,6 +79,10 @@ export async function sendWelcomeEmail(email: string, name: string) {
 export async function sendChallengeEmail(email: string, name: string, accountSize: string, model?: string) {
   if (!process.env.RESEND_API_KEY) return;
   const isSingleStep = model === '1step';
+  const profitTarget = isSingleStep ? '10%' : '8% (Phase 1) / 5% (Phase 2)';
+  const dailyLoss = isSingleStep ? '3%' : '5%';
+  const maxLoss = isSingleStep ? '6%' : '10%';
+  const minDays = '3';
   try {
     await resend.emails.send({
       from,
@@ -102,19 +106,19 @@ export async function sendChallengeEmail(email: string, name: string, accountSiz
                 <div><div class="label">Phase</div><div class="value">${isSingleStep ? '1 / 1' : '1 / 2'}</div></div>
               </div>
               <div class="stat-row">
-                <div><div class="label">Profit Target</div><div class="value">10%</div></div>
-                <div><div class="label">Min Trading Days</div><div class="value">5</div></div>
+                <div><div class="label">Profit Target</div><div class="value">${profitTarget}</div></div>
+                <div><div class="label">Min Trading Days</div><div class="value">${minDays}</div></div>
               </div>
               <div class="stat-row" style="margin-bottom:0;">
-                <div><div class="label">Daily Max Loss</div><div class="value">5%</div></div>
-                <div><div class="label">Max Total Loss</div><div class="value">10%</div></div>
+                <div><div class="label">Daily Max Loss</div><div class="value">${dailyLoss}</div></div>
+                <div><div class="label">Max Total Loss</div><div class="value">${maxLoss}</div></div>
               </div>
             </div>
             <p><strong>Your trading objectives:</strong></p>
             ${isSingleStep
-              ? `<p>📈 Grow your account by <strong>10%</strong> without breaching the daily (5%) or max (10%) drawdown limits. Trade at least <strong>5 days</strong> and keep each day under 50% of total profit. Hit the target and get funded directly!</p>`
-              : `<p>📈 Grow your account by <strong>10%</strong> without breaching the daily (5%) or max (10%) drawdown limits. Trade at least <strong>5 days</strong> and keep each day under 50% of total profit.</p>
-            <p style="margin-bottom:24px;">Pass Phase 1 and you'll advance to Phase 2 (5% target, minimum 3 days). Complete both to become funded!</p>`}
+              ? `<p>📈 Grow your account by <strong>10%</strong> without breaching the daily (${dailyLoss}) or max (${maxLoss}) drawdown limits. Trade at least <strong>${minDays} days</strong> and keep each day under 50% of total profit. Hit the target and get funded directly!</p>`
+              : `<p>📈 Grow your account by <strong>8%</strong> without breaching the daily (${dailyLoss}) or max (${maxLoss}) drawdown limits. Trade at least <strong>${minDays} days</strong> and keep each day under 50% of total profit.</p>
+            <p style="margin-bottom:24px;">Pass Phase 1 and you'll advance to Phase 2 (5% target, minimum ${minDays} days). Complete both to become funded!</p>`}
             <div style="text-align:center;margin:24px 0;">
               <a href="https://fundedbirr.com/dashboard/trade" class="btn btn-gold">Start Trading</a>
             </div>

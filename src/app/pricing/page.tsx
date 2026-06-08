@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useState } from 'react';
-import { CHALLENGE_MODELS } from '@/lib/constants';
+import { CHALLENGE_MODELS, MODEL_CONFIG } from '@/lib/constants';
 
 const PLANS = [
   {
@@ -12,9 +12,6 @@ const PLANS = [
     virtual: 5000,
     price: 1500,
     priceLabel: '1,500 ETB',
-    target: '8%',
-    daily: '4%',
-    max: '8%',
     maxLot: '1.0',
     popular: false,
     color: 'rgba(255,255,255,0.06)',
@@ -26,9 +23,6 @@ const PLANS = [
     virtual: 10000,
     price: 3000,
     priceLabel: '3,000 ETB',
-    target: '8%',
-    daily: '4%',
-    max: '8%',
     maxLot: '2.0',
     popular: false,
     color: 'rgba(255,255,255,0.06)',
@@ -40,9 +34,6 @@ const PLANS = [
     virtual: 25000,
     price: 7000,
     priceLabel: '7,000 ETB',
-    target: '10%',
-    daily: '5%',
-    max: '10%',
     maxLot: '5.0',
     popular: true,
     color: 'rgba(201,145,42,0.35)',
@@ -54,9 +45,6 @@ const PLANS = [
     virtual: 50000,
     price: 12000,
     priceLabel: '12,000 ETB',
-    target: '10%',
-    daily: '5%',
-    max: '10%',
     maxLot: '10.0',
     popular: false,
     color: 'rgba(255,255,255,0.06)',
@@ -68,9 +56,6 @@ const PLANS = [
     virtual: 100000,
     price: 20000,
     priceLabel: '20,000 ETB',
-    target: '10%',
-    daily: '5%',
-    max: '10%',
     maxLot: '20.0',
     popular: false,
     color: 'rgba(255,255,255,0.06)',
@@ -184,6 +169,12 @@ export default function PricingPage() {
           marginBottom: '2.5rem',
         }}>
           {CHALLENGE_MODELS[selectedModel].description}
+          {selectedModel === '1step' && (
+            <span> — 3% daily loss · 6% max drawdown · 1:30 leverage</span>
+          )}
+          {selectedModel === '2step' && (
+            <span> — 5% daily loss · 10% max drawdown · 1:100 leverage</span>
+          )}
         </p>
 
         <div style={{
@@ -275,25 +266,30 @@ export default function PricingPage() {
                 marginBottom: '1.5rem',
                 flex: 1,
               }}>
-                {[
-                  { label: 'Profit target', val: plan.target },
-                  { label: 'Daily loss limit', val: plan.daily },
-                  { label: 'Max drawdown', val: plan.max },
-                  { label: 'Max lot size', val: plan.maxLot },
-                ].map((r, i) => (
-                  <div key={r.label} style={{
-                    padding: '6px 0',
-                    borderTop: i > 0 ? '1px solid rgba(255,255,255,0.05)' : 'none',
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                  }}>
-                    <span style={{ color: 'rgba(255,255,255,0.35)', fontSize: '0.68rem' }}>
-                      {r.label}
-                    </span>
-                    <span style={{ fontWeight: 500, color: 'var(--text)' }}>{r.val}</span>
-                  </div>
-                ))}
+                {(() => {
+                  const cfg = MODEL_CONFIG[selectedModel];
+                  const target = selectedModel === '2step' ? `${cfg.phase1ProfitTarget}% / ${cfg.phase2ProfitTarget}%` : `${cfg.phase1ProfitTarget}%`;
+                  return [
+                    { label: 'Profit target', val: target },
+                    { label: 'Daily loss limit', val: `${cfg.maxDailyLossPct}%` },
+                    { label: 'Max drawdown', val: `${cfg.maxLossPct}%` },
+                    { label: 'Min trading days', val: `${cfg.minTradingDays} days` },
+                    { label: 'Max lot size', val: plan.maxLot },
+                  ].map((r, i) => (
+                    <div key={r.label} style={{
+                      padding: '6px 0',
+                      borderTop: i > 0 ? '1px solid rgba(255,255,255,0.05)' : 'none',
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                    }}>
+                      <span style={{ color: 'rgba(255,255,255,0.35)', fontSize: '0.68rem' }}>
+                        {r.label}
+                      </span>
+                      <span style={{ fontWeight: 500, color: 'var(--text)' }}>{r.val}</span>
+                    </div>
+                  ));
+                })()}
               </div>
 
               <Link

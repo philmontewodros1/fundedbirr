@@ -33,8 +33,8 @@ export const PLAN_TO_TYPE: Record<string, string> = {
 export const CHALLENGE_PHASES = {
   phase1: {
     label: 'Phase 1 — Evaluation',
-    profitTarget: 10,
-    minTradingDays: 5,
+    profitTarget: 8,
+    minTradingDays: 3,
   },
   phase2: {
     label: 'Phase 2 — Verification',
@@ -53,8 +53,40 @@ export const FUNDED_CONFIG = {
 };
 
 export const CHALLENGE_MODELS: Record<string, { label: string, description: string }> = {
-  '2step': { label: '2-Step Evaluation', description: 'Phase 1 (10%) → Phase 2 (5%) → Funded' },
+  '2step': { label: '2-Step Evaluation', description: 'Phase 1 (8%) → Phase 2 (5%) → Funded' },
   '1step': { label: '1-Step Evaluation', description: 'Single Phase (10%) → Funded' },
+};
+
+export const MODEL_CONFIG: Record<string, {
+  label: string,
+  phase1ProfitTarget: number,
+  phase2ProfitTarget: number | null,
+  minTradingDays: number,
+  maxDailyLossPct: number,
+  maxLossPct: number,
+  leverage: number,
+  consistencyPct: number,
+}> = {
+  '2step': {
+    label: '2-Step Standard',
+    phase1ProfitTarget: 8,
+    phase2ProfitTarget: 5,
+    minTradingDays: 3,
+    maxDailyLossPct: 5,
+    maxLossPct: 10,
+    leverage: 100,
+    consistencyPct: 50,
+  },
+  '1step': {
+    label: '1-Step',
+    phase1ProfitTarget: 10,
+    phase2ProfitTarget: null,
+    minTradingDays: 3,
+    maxDailyLossPct: 3,
+    maxLossPct: 6,
+    leverage: 30,
+    consistencyPct: 50,
+  },
 };
 
 export const INSTRUMENTS: Record<string, { label: string, contractSize: number, category: string }> = {
@@ -86,17 +118,18 @@ export function getPipValue(symbol: string, lotSize: number): number {
   return pip * lotSize * cs
 }
 
-export function getChallengeConfig(challengeType: string) {
+export function getChallengeConfig(challengeType: string, model?: string) {
+  const m = model && MODEL_CONFIG[model] ? MODEL_CONFIG[model] : MODEL_CONFIG['2step']
   return {
     virtualBalance: CHALLENGE_VIRTUAL[challengeType] || 25000,
-    profitTarget: 10,
-    dailyLoss: 5,
-    maxLoss: 10,
+    profitTarget: m.phase1ProfitTarget,
+    dailyLoss: m.maxDailyLossPct,
+    maxLoss: m.maxLossPct,
     price: CHALLENGE_PRICES[challengeType] || 7000,
-    phase2ProfitTarget: 5,
-    minTradingDaysPhase1: 5,
-    minTradingDaysPhase2: 3,
-    consistencyRule: 50,
+    phase2ProfitTarget: m.phase2ProfitTarget,
+    minTradingDaysPhase1: m.minTradingDays,
+    minTradingDaysPhase2: m.minTradingDays,
+    consistencyRule: m.consistencyPct,
     profitSplit: 80,
     payoutDays: 14,
     feeRefund: true,
