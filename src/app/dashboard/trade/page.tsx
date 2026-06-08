@@ -87,6 +87,8 @@ export default function TradePage() {
 
   const [tvChartId] = useState(() => 'tv_chart_' + Math.random().toString(36).slice(2, 8))
 
+  const [lastChallengeId, setLastChallengeId] = useState<string>('')
+
   useEffect(() => {
     import('@supabase/ssr').then(({ createBrowserClient }) => {
       const supabase = createBrowserClient(
@@ -103,7 +105,12 @@ export default function TradePage() {
     if (!userId) return
     const res = await fetch(`/api/dashboard`)
     const data = await res.json()
-    if (data?.activeChallenge) setChallenge(data.activeChallenge)
+    if (data?.activeChallenge) {
+      setChallenge(data.activeChallenge)
+      setLastChallengeId(data.activeChallenge.id)
+    } else if (data?.lastChallenge) {
+      setLastChallengeId(data.lastChallenge.id)
+    }
   }, [userId])
 
   useEffect(() => {
@@ -120,78 +127,82 @@ export default function TradePage() {
   }, [userId, challenge?.id])
 
   const fetchHistory = useCallback(async () => {
-    if (!userId || !challenge?.id) return
+    if (!userId) return
+    const cid = challenge?.id || lastChallengeId
+    if (!cid) return
     const res = await fetch(
-      `/api/trade/history?user_id=${userId}&challenge_id=${challenge.id}`
+      `/api/trade/history?user_id=${userId}&challenge_id=${cid}`
     )
     const data = await res.json()
     if (data?.trades) setHistory(data.trades)
-  }, [userId, challenge?.id])
+  }, [userId, challenge?.id, lastChallengeId])
 
   useEffect(() => {
     fetchPositions()
     fetchHistory()
   }, [fetchPositions, fetchHistory])
 
+  // load TradingView script once
   useEffect(() => {
-    if (!chartRef.current) return
-    const id = tvChartId
-    chartRef.current.id = id
-
+    if (typeof (window as any).TradingView !== 'undefined') return
     const script = document.createElement('script')
     script.src = 'https://s3.tradingview.com/tv.js'
     script.async = true
-    script.onload = () => {
-      if (typeof (window as any).TradingView === 'undefined') return
-      const widget = new (window as any).TradingView.widget({
-        container_id: id,
-        width: '100%',
-        height: 380,
-        symbol: tvSymbol,
-        interval: '60',
-        timezone: 'Africa/Addis_Ababa',
-        theme: 'dark',
-        style: '1',
-        locale: 'en',
-        toolbar_bg: '#151810',
-        enable_publishing: false,
-        hide_side_toolbar: false,
-        allow_symbol_change: false,
-        details: true,
-        studies: [
-          'RSI@tv-basicstudies',
-          'MACD@tv-basicstudies',
-          'Stochastic@tv-basicstudies',
-          'BB@tv-basicstudies',
-        ],
-        show_popup_button: true,
-        popup_width: '1000',
-        popup_height: '650',
-        support_host: 'https://www.tradingview.com',
-      })
-      widget.onChartReady(() => {
-        tvWidgetRef.current = widget
-      })
-    }
     document.head.appendChild(script)
+  }, [])
+
+  // recreate widget on symbol change (setSymbol is unreliable)
+  useEffect(() => {
+    if (!chartRef.current) return
+    if (typeof (window as any).TradingView === 'undefined') return
+
+    if (tvWidgetRef.current) {
+      try { tvWidgetRef.current.remove() } catch (_) {}
+      tvWidgetRef.current = null
+    }
+
+    const id = tvChartId
+    chartRef.current.id = id
+    const el = document.getElementById(id)
+    if (el) el.innerHTML = ''
+
+    const widget = new (window as any).TradingView.widget({
+      container_id: id,
+      width: '100%',
+      height: 380,
+      symbol: tvSymbol,
+      interval: '60',
+      timezone: 'Africa/Addis_Ababa',
+      theme: 'dark',
+      style: '1',
+      locale: 'en',
+      toolbar_bg: '#151810',
+      enable_publishing: false,
+      hide_side_toolbar: false,
+      allow_symbol_change: false,
+      details: true,
+      studies: [
+        'RSI@tv-basicstudies',
+        'MACD@tv-basicstudies',
+        'Stochastic@tv-basicstudies',
+        'BB@tv-basicstudies',
+      ],
+      show_popup_button: true,
+      popup_width: '1000',
+      popup_height: '650',
+      support_host: 'https://www.tradingview.com',
+    })
+    widget.onChartReady(() => {
+      tvWidgetRef.current = widget
+    })
 
     return () => {
       if (tvWidgetRef.current) {
         try { tvWidgetRef.current.remove() } catch (_) {}
         tvWidgetRef.current = null
       }
-      const el = document.getElementById(id)
-      if (el) el.innerHTML = ''
     }
-  }, [])
-
-  useEffect(() => {
-    if (tvWidgetRef.current) {
-      try {
-        tvWidgetRef.current.setSymbol(tvSymbol, () => {})
-      } catch (_) {}
-    }
-  }, [selectedSymbol])
+  }, [selectedSymbol, tvSymbol])
 
   useEffect(() => {
     const poll = async () => {

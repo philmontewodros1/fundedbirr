@@ -43,6 +43,14 @@ export async function GET() {
     .limit(1)
     .maybeSingle();
 
+  const { data: lastChallenge } = await admin
+    .from('challenges')
+    .select('id')
+    .eq('user_id', user.id)
+    .order('started_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
   const { data: latestPayment } = await admin
     .from('payments')
     .select('status, amount_etb, challenge_type, submitted_at')
@@ -52,5 +60,5 @@ export async function GET() {
     .limit(1)
     .maybeSingle();
 
-  return NextResponse.json({ profile, activeChallenge, latestPayment });
+  return NextResponse.json({ profile, activeChallenge, lastChallenge, latestPayment });
 }
