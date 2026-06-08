@@ -277,7 +277,10 @@ export async function POST(req: NextRequest) {
             userData.full_name || 'Trader',
             PLAN_LABELS[challenge.account_size] || challenge.account_size,
             failReason,
-            process.env.NEXT_PUBLIC_APP_URL || 'https://www.fundedbirr.com'
+            process.env.NEXT_PUBLIC_APP_URL || 'https://www.fundedbirr.com',
+            tradingDaysCount,
+            Math.round(dailyDDPct * 100) / 100,
+            Math.round(maxDDPct * 100) / 100,
           )
         } catch (_) {}
       }
