@@ -30,7 +30,22 @@ interface Challenge {
   phase: number
 }
 
-const SPREAD = 0.30
+const SPREAD: Record<string, number> = {
+  XAUUSD: 0.30,
+  XAGUSD: 0.50,
+  EURUSD: 0.0002,
+  GBPUSD: 0.0003,
+  USDJPY: 0.03,
+  AUDUSD: 0.0002,
+  USDCAD: 0.0003,
+  NZDUSD: 0.0002,
+  EURJPY: 0.03,
+  GBPJPY: 0.04,
+  BTCUSD: 50,
+  SPX500: 2,
+  US30: 3,
+  NAS100: 2,
+}
 
 function calcUnrealizedPnl(trade: Trade, price: number) {
   const cs = getContractSize(trade.symbol || 'XAUUSD')
@@ -45,7 +60,6 @@ function pct(value: number, total: number) {
 export default function TradePage() {
   const chartRef = useRef<HTMLDivElement>(null)
   const tvWidgetRef = useRef<any>(null)
-  const [tvReady, setTvReady] = useState(false)
 
   const [selectedSymbol, setSelectedSymbol] = useState('XAUUSD')
   const [price, setPrice] = useState<number>(0)
@@ -68,6 +82,7 @@ export default function TradePage() {
   const profitTarget = phase === 1 ? 10 : 5
   const minDays = phase === 1 ? 5 : 3
   const instr = INSTRUMENTS[selectedSymbol]
+  const spread = SPREAD[selectedSymbol] || 0.30
   const tvSymbol = selectedSymbol === 'BTCUSD' ? 'BINANCE:BTCUSDT' : selectedSymbol === 'XAUUSD' ? 'OANDA:XAUUSD' : `OANDA:${selectedSymbol}`
 
   const [tvChartId] = useState(() => 'tv_chart_' + Math.random().toString(36).slice(2, 8))
@@ -128,7 +143,7 @@ export default function TradePage() {
     script.async = true
     script.onload = () => {
       if (typeof (window as any).TradingView === 'undefined') return
-      tvWidgetRef.current = new (window as any).TradingView.widget({
+      const widget = new (window as any).TradingView.widget({
         container_id: id,
         width: '100%',
         height: 380,
@@ -154,10 +169,17 @@ export default function TradePage() {
         popup_height: '650',
         support_host: 'https://www.tradingview.com',
       })
+      widget.onChartReady(() => {
+        tvWidgetRef.current = widget
+      })
     }
     document.head.appendChild(script)
 
     return () => {
+      if (tvWidgetRef.current) {
+        try { tvWidgetRef.current.remove() } catch (_) {}
+        tvWidgetRef.current = null
+      }
       const el = document.getElementById(id)
       if (el) el.innerHTML = ''
     }
@@ -165,7 +187,9 @@ export default function TradePage() {
 
   useEffect(() => {
     if (tvWidgetRef.current) {
-      tvWidgetRef.current.setSymbol(tvSymbol, () => {})
+      try {
+        tvWidgetRef.current.setSymbol(tvSymbol, () => {})
+      } catch (_) {}
     }
   }, [selectedSymbol])
 
@@ -177,8 +201,8 @@ export default function TradePage() {
         if (!data.price) return
         const p = Number(data.price)
         setPrice(p)
-        setBid(Math.round((p - SPREAD / 2) * 100) / 100)
-        setAsk(Math.round((p + SPREAD / 2) * 100) / 100)
+        setBid(Math.round((p - spread / 2) * 100) / 100)
+        setAsk(Math.round((p + spread / 2) * 100) / 100)
 
         setOpenTrades((prev) => {
           const toClose = prev.filter((t) => {
@@ -305,7 +329,7 @@ export default function TradePage() {
           )}
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '2rem', fontSize: '0.85rem' }}>
-          <span>Live: <strong style={{ fontFamily: 'Syne, sans-serif', color: '#F0C060' }}>${price.toFixed(2)}</strong></span>
+          <span>Live: <strong style={{ fontFamily: 'Syne, sans-serif', color: '#F0C060' }}>${price.toFixed(price < 10 ? 4 : 2)}</strong></span>
           {challenge && (
             <>
               <span>Balance: <strong style={{ color: '#28A86A' }}>${(challenge.current_balance || challenge.virtual_balance).toLocaleString()}</strong></span>
@@ -352,9 +376,9 @@ export default function TradePage() {
                         <tr key={t.id} style={{ borderBottom: '1px solid #1E2218' }}>
                           <td style={{ padding: '0.6rem 1rem', color: '#9A9880' }}>{t.symbol || 'XAUUSD'}</td>
                           <td style={{ padding: '0.6rem 1rem', color: t.direction === 'buy' ? '#28A86A' : '#E84B4B', fontWeight: 700, textTransform: 'uppercase' }}>{t.direction}</td>
-                          <td style={{ padding: '0.6rem 1rem' }}>{t.lot_size}</td>
-                          <td style={{ padding: '0.6rem 1rem', fontFamily: 'Syne, sans-serif' }}>{t.entry_price.toFixed(2)}</td>
-                          <td style={{ padding: '0.6rem 1rem', fontFamily: 'Syne, sans-serif', color: '#E8B84B' }}>{price.toFixed(2)}</td>
+                          <td style={{ padding: '0.6rem 1rem' }}>{t.lot_size.toFixed(2)}</td>
+                          <td style={{ padding: '0.6rem 1rem', fontFamily: 'Syne, sans-serif' }}>{t.entry_price.toFixed(t.entry_price < 10 ? 4 : 2)}</td>
+                          <td style={{ padding: '0.6rem 1rem', fontFamily: 'Syne, sans-serif', color: '#E8B84B' }}>{price.toFixed(price < 10 ? 4 : 2)}</td>
                           <td style={{ padding: '0.6rem 1rem', fontFamily: 'Syne, sans-serif', fontWeight: 700, color: unrealized >= 0 ? '#28A86A' : '#E84B4B' }}>
                             {unrealized >= 0 ? '+' : ''}${unrealized.toFixed(2)}
                           </td>
@@ -387,9 +411,9 @@ export default function TradePage() {
                         <td style={{ padding: '0.6rem 1rem', color: '#9A9880', fontSize: '0.75rem' }}>{t.symbol || 'XAUUSD'}</td>
                         <td style={{ padding: '0.6rem 1rem', color: '#9A9880', fontSize: '0.75rem' }}>{t.closed_at ? new Date(t.closed_at).toLocaleDateString() : '—'}</td>
                         <td style={{ padding: '0.6rem 1rem', color: t.direction === 'buy' ? '#28A86A' : '#E84B4B', fontWeight: 700, textTransform: 'uppercase' }}>{t.direction}</td>
-                        <td style={{ padding: '0.6rem 1rem' }}>{t.lot_size}</td>
-                        <td style={{ padding: '0.6rem 1rem', fontFamily: 'Syne, sans-serif' }}>{t.entry_price.toFixed(2)}</td>
-                        <td style={{ padding: '0.6rem 1rem', fontFamily: 'Syne, sans-serif' }}>{t.exit_price?.toFixed(2) || '—'}</td>
+                        <td style={{ padding: '0.6rem 1rem' }}>{t.lot_size.toFixed(2)}</td>
+                        <td style={{ padding: '0.6rem 1rem', fontFamily: 'Syne, sans-serif' }}>{t.entry_price.toFixed(t.entry_price < 10 ? 4 : 2)}</td>
+                        <td style={{ padding: '0.6rem 1rem', fontFamily: 'Syne, sans-serif' }}>{t.exit_price?.toFixed(t.exit_price < 10 ? 4 : 2) || '—'}</td>
                         <td style={{ padding: '0.6rem 1rem', fontFamily: 'Syne, sans-serif', fontWeight: 700, color: t.profit_loss >= 0 ? '#28A86A' : '#E84B4B' }}>
                           {t.profit_loss >= 0 ? '+' : ''}${t.profit_loss.toFixed(2)}
                         </td>
@@ -410,11 +434,11 @@ export default function TradePage() {
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1rem' }}>
               <div>
                 <div style={{ fontSize: '0.7rem', color: '#9A9880' }}>BID</div>
-                <div style={{ fontFamily: 'Syne, sans-serif', fontSize: '1.3rem', fontWeight: 800, color: '#E84B4B' }}>{bid.toFixed(2)}</div>
+                <div style={{ fontFamily: 'Syne, sans-serif', fontSize: '1.3rem', fontWeight: 800, color: '#E84B4B' }}>{bid.toFixed(price < 10 ? 4 : 2)}</div>
               </div>
               <div style={{ textAlign: 'right' }}>
                 <div style={{ fontSize: '0.7rem', color: '#9A9880' }}>ASK</div>
-                <div style={{ fontFamily: 'Syne, sans-serif', fontSize: '1.3rem', fontWeight: 800, color: '#28A86A' }}>{ask.toFixed(2)}</div>
+                <div style={{ fontFamily: 'Syne, sans-serif', fontSize: '1.3rem', fontWeight: 800, color: '#28A86A' }}>{ask.toFixed(price < 10 ? 4 : 2)}</div>
               </div>
             </div>
 
@@ -439,7 +463,7 @@ export default function TradePage() {
                   </button>
                 ))}
               </div>
-              <input type="number" value={lotSize} onChange={(e) => setLotSize(Number(e.target.value))} min="0.01" max="10" step="0.01"
+              <input type="number" value={lotSize.toFixed(2)} onChange={(e) => setLotSize(Number(e.target.value))} min="0.01" max="10" step="0.01"
                 style={{ width: '100%', background: '#1E2218', border: '1px solid #272C1F', borderRadius: '6px', padding: '0.4rem 0.6rem', color: '#F5F2E8', fontSize: '0.85rem', fontFamily: 'Syne, sans-serif' }} />
             </div>
 
@@ -517,7 +541,7 @@ export default function TradePage() {
               📉 Max drawdown: max 10%<br />
               📅 Min trading days: {minDays}<br />
               📊 Consistency: ≤50% per day<br />
-              💰 Spread: 0.30 pts
+              💰 Spread: {spread} pts
             </div>
           </div>
         </div>
