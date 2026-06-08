@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { createBrowserClient } from '@supabase/ssr';
+import { PLAN_TO_TYPE } from '@/lib/constants';
 
 const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -15,6 +16,7 @@ function RegisterForm() {
   const searchParams = useSearchParams();
   const ref = searchParams.get('ref') || '';
   const isTrial = searchParams.get('trial') === 'true';
+  const planParam = searchParams.get('plan') || '';
 
   const [fullName, setFullName] = useState('');
   const [phone, setPhone] = useState('');
@@ -23,11 +25,19 @@ function RegisterForm() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
+  const planType = planParam ? (PLAN_TO_TYPE[planParam] || null) : null;
+
   useEffect(() => {
     if (ref) {
       localStorage.setItem('fb_ref', ref);
     }
   }, [ref]);
+
+  useEffect(() => {
+    if (planParam) {
+      localStorage.setItem('fb_plan', planParam);
+    }
+  }, [planParam]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -35,7 +45,7 @@ function RegisterForm() {
     setLoading(true);
 
     try {
-      const body: Record<string, any> = { email, password, fullName, phone };
+      const body: Record<string, any> = { email, password, fullName, phone, plan: planType };
       if (ref) body.referredBy = ref;
       if (isTrial) body.isTrial = true;
 
@@ -63,9 +73,12 @@ function RegisterForm() {
       }
 
       localStorage.removeItem('fb_ref');
+      localStorage.removeItem('fb_plan');
 
       if (data.isTrial) {
         router.push('/dashboard/trade');
+      } else if (planType) {
+        router.push(`/dashboard/payment?plan=${planParam}`);
       } else {
         router.push('/dashboard');
       }
@@ -96,6 +109,16 @@ function RegisterForm() {
           textAlign: 'center', fontSize: '0.85rem', color: 'var(--green-light)',
         }}>
           🆓 Free Trial — no payment required
+        </div>
+      )}
+
+      {planType && (
+        <div style={{
+          background: 'rgba(201,145,42,0.1)', border: '1px solid rgba(201,145,42,0.25)',
+          borderRadius: '10px', padding: '0.75rem 1rem', marginBottom: '1rem',
+          textAlign: 'center', fontSize: '0.85rem', color: 'var(--accent)',
+        }}>
+          🎯 {planParam!.charAt(0).toUpperCase() + planParam!.slice(1)} plan selected — create your account to continue
         </div>
       )}
 

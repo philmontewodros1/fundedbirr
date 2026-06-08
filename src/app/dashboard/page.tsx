@@ -162,7 +162,7 @@ export default function DashboardPage() {
                 Your Trading Terminal is Ready
               </h2>
               <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', marginBottom: '1.25rem' }}>
-                Trade XAUUSD with your ${challenge.virtual_balance.toLocaleString()} virtual balance.
+                Trade 14 instruments (XAUUSD, forex, indices, crypto) with your ${challenge.virtual_balance.toLocaleString()} virtual balance.
               </p>
               <a href="/dashboard/trade" className="no-underline" style={{
                 background: '#C9912A', color: '#0D0F0A', padding: '0.85rem 2rem',

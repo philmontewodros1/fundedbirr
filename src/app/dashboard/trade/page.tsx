@@ -172,17 +172,17 @@ export default function TradePage() {
   useEffect(() => {
     const poll = async () => {
       try {
-        const res = await fetch('/api/gold-price')
+        const res = await fetch(`/api/price?symbol=${selectedSymbol}`)
         const data = await res.json()
         if (!data.price) return
         const p = Number(data.price)
         setPrice(p)
-        setBid(p)
-        setAsk(Math.round((p + SPREAD) * 100) / 100)
+        setBid(Math.round((p - SPREAD / 2) * 100) / 100)
+        setAsk(Math.round((p + SPREAD / 2) * 100) / 100)
 
         setOpenTrades((prev) => {
           const toClose = prev.filter((t) => {
-            if (t.symbol !== 'XAUUSD') return false
+            if (t.symbol !== selectedSymbol) return false
             if (t.direction === 'buy') {
               return (t.sl && p <= t.sl) || (t.tp && p >= t.tp)
             } else {
@@ -199,9 +199,10 @@ export default function TradePage() {
       } catch (_) {}
     }
 
+    poll()
     const iv = setInterval(poll, 5000)
     return () => clearInterval(iv)
-  }, [])
+  }, [selectedSymbol])
 
   const liveEquity = challenge
     ? (challenge.current_balance || challenge.virtual_balance) +

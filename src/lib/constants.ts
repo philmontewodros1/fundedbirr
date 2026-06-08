@@ -1,4 +1,5 @@
 export const CHALLENGE_PRICES: Record<string, number> = {
+  bf5k: 1500,
   bf10k: 3000,
   bf25k: 7000,
   bf50k: 12000,
@@ -6,6 +7,7 @@ export const CHALLENGE_PRICES: Record<string, number> = {
 };
 
 export const CHALLENGE_VIRTUAL: Record<string, number> = {
+  bf5k: 5000,
   bf10k: 10000,
   bf25k: 25000,
   bf50k: 50000,
@@ -13,10 +15,19 @@ export const CHALLENGE_VIRTUAL: Record<string, number> = {
 };
 
 export const PLAN_LABELS: Record<string, string> = {
+  bf5k: 'BF 5K',
   bf10k: 'BF 10K',
   bf25k: 'BF 25K',
   bf50k: 'BF 50K',
   bf100k: 'BF 100K',
+};
+
+export const PLAN_TO_TYPE: Record<string, string> = {
+  starter: 'bf5k',
+  standard: 'bf10k',
+  pro: 'bf25k',
+  elite: 'bf50k',
+  legend: 'bf100k',
 };
 
 export const CHALLENGE_PHASES = {
