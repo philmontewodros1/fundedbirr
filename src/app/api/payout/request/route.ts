@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 
+const ETB_RATE = 130; // approximate USD to ETB, update as needed
+
 export async function POST(req: Request) {
   const cookieStore = cookies();
   const supabase = createServerClient(
@@ -29,13 +31,23 @@ export async function POST(req: Request) {
 
   const { data: challenge } = await supabase
     .from('challenges')
-    .select('id, status')
+    .select('id, status, virtual_balance, current_balance')
     .eq('user_id', user.id)
     .eq('status', 'passed')
     .maybeSingle();
 
   if (!challenge) {
     return NextResponse.json({ error: 'No funded challenge found. Pass both phases first.' }, { status: 400 });
+  }
+
+  const grossProfit = (challenge.current_balance || challenge.virtual_balance) - challenge.virtual_balance;
+  const maxPayoutUsd = grossProfit * 0.80;
+  const maxPayoutEtb = Math.floor(maxPayoutUsd * ETB_RATE);
+
+  if (amount > maxPayoutEtb) {
+    return NextResponse.json({
+      error: `Maximum payout is ${maxPayoutEtb.toLocaleString()} ETB (80% of your profit)`
+    }, { status: 400 });
   }
 
   const { data: recentPayout } = await supabase

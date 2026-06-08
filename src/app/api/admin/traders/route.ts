@@ -1,11 +1,14 @@
 import { NextResponse } from 'next/server';
-import { getSupabaseAdmin } from '@/lib/supabase-admin';
+import { requireAdmin } from '@/lib/admin-guard';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET() {
-  const supabaseAdmin = getSupabaseAdmin();
-  const { data: users, error } = await supabaseAdmin
+  const auth = await requireAdmin();
+  if (auth.error) return auth.error;
+
+  const { adminClient } = auth;
+  const { data: users, error } = await adminClient
     .from('users')
     .select('id, full_name, email, phone, kyc_status, created_at')
     .order('created_at', { ascending: false });

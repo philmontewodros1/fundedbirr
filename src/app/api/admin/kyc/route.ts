@@ -1,11 +1,14 @@
 import { NextResponse } from 'next/server';
-import { getSupabaseAdmin } from '@/lib/supabase-admin';
+import { requireAdmin } from '@/lib/admin-guard';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET() {
-  const supabaseAdmin = getSupabaseAdmin();
-  const { data: users, error } = await supabaseAdmin
+  const auth = await requireAdmin();
+  if (auth.error) return auth.error;
+
+  const { adminClient } = auth;
+  const { data: users, error } = await adminClient
     .from('users')
     .select('id, full_name, email, kyc_status, kyc_document_url')
     .order('created_at', { ascending: false });
@@ -18,10 +21,13 @@ export async function GET() {
 }
 
 export async function PATCH(req: Request) {
+  const auth = await requireAdmin();
+  if (auth.error) return auth.error;
+
+  const { adminClient } = auth;
   const { id, status } = await req.json();
 
-  const supabaseAdmin2 = getSupabaseAdmin();
-  const { error } = await supabaseAdmin2
+  const { error } = await adminClient
     .from('users')
     .update({ kyc_status: status })
     .eq('id', id);

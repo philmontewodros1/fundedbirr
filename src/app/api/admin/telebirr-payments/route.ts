@@ -1,13 +1,16 @@
 import { NextResponse } from 'next/server';
-import { getSupabaseAdmin } from '@/lib/supabase-admin';
+import { requireAdmin } from '@/lib/admin-guard';
 import { getChallengeConfig, PLAN_LABELS } from '@/lib/constants';
 import { sendChallengeEmail } from '@/lib/resend';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET() {
-  const supabaseAdmin = getSupabaseAdmin();
-  const { data: payments, error } = await supabaseAdmin
+  const auth = await requireAdmin();
+  if (auth.error) return auth.error;
+
+  const { adminClient } = auth;
+  const { data: payments, error } = await adminClient
     .from('payments')
     .select('*, users(full_name, email, referred_by)')
     .in('status', ['pending', 'approved', 'rejected'])
@@ -22,16 +25,18 @@ export async function GET() {
 }
 
 export async function PATCH(req: Request) {
+  const auth = await requireAdmin();
+  if (auth.error) return auth.error;
+
+  const { adminClient } = auth;
   const { id, status } = await req.json();
 
   if (!id || !['approved', 'rejected'].includes(status)) {
     return NextResponse.json({ error: 'Invalid request' }, { status: 400 });
   }
 
-  const supabaseAdmin = getSupabaseAdmin();
-
   if (status === 'approved') {
-    const { data: payment } = await supabaseAdmin
+    const { data: payment } = await adminClient
       .from('payments')
       .select('*, users!inner(full_name, email, referred_by)')
       .eq('id', id)
@@ -41,7 +46,7 @@ export async function PATCH(req: Request) {
       return NextResponse.json({ error: 'Payment not found' }, { status: 404 });
     }
 
-    const { error: updateError } = await supabaseAdmin
+    const { error: updateError } = await adminClient
       .from('payments')
       .update({ status: 'approved' })
       .eq('id', id);
@@ -53,7 +58,7 @@ export async function PATCH(req: Request) {
     const challengeType = payment.challenge_type || 'pro';
     const config = getChallengeConfig(challengeType);
 
-    const { error: challengeError } = await supabaseAdmin.from('challenges').insert({
+    const { error: challengeError } = await adminClient.from('challenges').insert({
       user_id: payment.user_id,
       account_size: challengeType,
       virtual_balance: config.virtualBalance,
@@ -79,7 +84,7 @@ export async function PATCH(req: Request) {
 
       if (userProfile.referred_by) {
         const commission = Math.round(config.price * 0.1);
-        const { error: commissionError } = await supabaseAdmin.from('affiliate_commissions').insert({
+        const { error: commissionError } = await adminClient.from('affiliate_commissions').insert({
           referrer_id: userProfile.referred_by,
           referred_user_id: payment.user_id,
           payment_id: payment.id,
@@ -97,7 +102,7 @@ export async function PATCH(req: Request) {
   }
 
   if (status === 'rejected') {
-    const { error } = await supabaseAdmin
+    const { error } = await adminClient
       .from('payments')
       .update({ status: 'rejected' })
       .eq('id', id);

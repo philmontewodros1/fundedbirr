@@ -1,18 +1,38 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { createServerClient } from '@supabase/ssr'
 import { createClient } from '@supabase/supabase-js'
+import { cookies } from 'next/headers'
 import { sendChallengeFailedEmail, sendChallengePassedEmail } from '@/lib/resend'
 import { PLAN_LABELS, getContractSize } from '@/lib/constants'
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-)
-
 export async function POST(req: NextRequest) {
   try {
-    const { trade_id, exit_price, user_id } = await req.json()
+    const cookieStore = cookies()
+    const supabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          getAll() { return cookieStore.getAll() },
+          setAll() {},
+        },
+      }
+    )
 
-    const { data: trade, error: tradeErr } = await supabase
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    const { trade_id, exit_price } = await req.json()
+    const user_id = user.id
+
+    const admin = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    )
+
+    const { data: trade, error: tradeErr } = await admin
       .from('trades')
       .select('*')
       .eq('id', trade_id)
@@ -24,7 +44,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Trade not found' }, { status: 404 })
     }
 
-    const { data: challenge } = await supabase
+    const { data: challenge } = await admin
       .from('challenges')
       .select('*')
       .eq('id', trade.challenge_id)
@@ -43,7 +63,7 @@ export async function POST(req: NextRequest) {
     }
     pnl = Math.round(pnl * 100) / 100
 
-    await supabase
+    await admin
       .from('trades')
       .update({
         exit_price,
@@ -71,7 +91,7 @@ export async function POST(req: NextRequest) {
     let failReason = ''
 
     const dailyLoss = dailyStartEquity - newEquity
-    const dailyDDPct = (dailyLoss / startingBalance) * 100
+    const dailyDDPct = (dailyLoss / dailyStartEquity) * 100
     if (dailyDDPct >= 5) {
       newStatus = 'failed'
       failReason = 'Daily drawdown limit (5%) reached'
@@ -88,7 +108,7 @@ export async function POST(req: NextRequest) {
       const profitPct = ((newBalance - startingBalance) / startingBalance) * 100
 
       if (newPhase === 1 && profitPct >= 10) {
-        const { data: trades } = await supabase
+        const { data: trades } = await admin
           .from('trades')
           .select('profit_loss, closed_at')
           .eq('challenge_id', challenge.id)
@@ -119,7 +139,7 @@ export async function POST(req: NextRequest) {
         if (newStatus !== 'failed') {
           newPhase = 2
           newStatus = 'active'
-          await supabase
+          await admin
             .from('challenges')
             .update({
               current_balance: challenge.virtual_balance,
@@ -149,7 +169,7 @@ export async function POST(req: NextRequest) {
       }
 
       if (newPhase === 2) {
-        const { data: trades } = await supabase
+        const { data: trades } = await admin
           .from('trades')
           .select('profit_loss, closed_at')
           .eq('challenge_id', challenge.id)
@@ -179,7 +199,7 @@ export async function POST(req: NextRequest) {
 
         if (newStatus !== 'failed' && profitPct >= 5) {
           newStatus = 'passed'
-          await supabase
+          await admin
             .from('challenges')
             .update({
               current_balance: newBalance,
@@ -192,16 +212,16 @@ export async function POST(req: NextRequest) {
             })
             .eq('id', challenge.id)
 
-          const { data: user } = await supabase
+          const { data: userData } = await admin
             .from('users')
             .select('email, full_name')
             .eq('id', user_id)
             .single()
-          if (user) {
+          if (userData) {
             try {
               await sendChallengePassedEmail(
-                user.email,
-                user.full_name || 'Trader',
+                userData.email,
+                userData.full_name || 'Trader',
                 PLAN_LABELS[challenge.account_size] || challenge.account_size,
                 process.env.NEXT_PUBLIC_APP_URL || 'https://www.fundedbirr.com'
               )
@@ -221,7 +241,7 @@ export async function POST(req: NextRequest) {
     }
 
     if (newStatus === 'failed') {
-      await supabase
+      await admin
         .from('trades')
         .update({
           exit_price,
@@ -232,7 +252,7 @@ export async function POST(req: NextRequest) {
         .eq('challenge_id', challenge.id)
         .eq('status', 'open')
 
-      await supabase
+      await admin
         .from('challenges')
         .update({
           current_balance: newBalance,
@@ -245,22 +265,22 @@ export async function POST(req: NextRequest) {
         })
         .eq('id', challenge.id)
 
-      try {
-        const { data: user } = await supabase
-          .from('users')
-          .select('email, full_name')
-          .eq('id', user_id)
-          .single()
-        if (user) {
+      const { data: userData } = await admin
+        .from('users')
+        .select('email, full_name')
+        .eq('id', user_id)
+        .single()
+      if (userData) {
+        try {
           await sendChallengeFailedEmail(
-            user.email,
-            user.full_name || 'Trader',
+            userData.email,
+            userData.full_name || 'Trader',
             PLAN_LABELS[challenge.account_size] || challenge.account_size,
             failReason,
             process.env.NEXT_PUBLIC_APP_URL || 'https://www.fundedbirr.com'
           )
-        }
-      } catch (_) {}
+        } catch (_) {}
+      }
 
       return NextResponse.json({
         success: true, pnl, new_balance: newBalance, new_equity: newEquity,
@@ -273,7 +293,7 @@ export async function POST(req: NextRequest) {
       })
     }
 
-    await supabase
+    await admin
       .from('challenges')
       .update({
         current_balance: newBalance,

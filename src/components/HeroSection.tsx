@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 
+
 type Lang = 'en' | 'am';
 
 const T = {
@@ -20,7 +21,7 @@ const T = {
   },
 };
 
-export default function HeroSection({ stats }: { stats: any }) {
+export default function HeroSection() {
   const [lang, setLang] = useState<Lang>('en');
 
   useEffect(() => {
@@ -64,30 +65,7 @@ export default function HeroSection({ stats }: { stats: any }) {
         </Link>
       </div>
 
-      <div style={{
-        display: 'flex', gap: 0,
-        border: '1px solid rgba(201,145,42,0.15)', borderRadius: '12px',
-        overflow: 'hidden', background: 'var(--dark-2)',
-      }}>
-        {[
-          { num: stats.total_traders > 0 ? `${stats.total_traders.toLocaleString()}+` : lang === 'en' ? 'Growing' : 'በማደግ ላይ', label: lang === 'en' ? 'Active traders' : 'ንቁ ተጠቃሚዎች' },
-          { num: stats.total_paid_etb > 0 ? `ETB ${(stats.total_paid_etb / 1000).toFixed(1)}K` : 'ETB 0', label: lang === 'en' ? 'Total paid out' : 'ጠቅላላ ክፍያ' },
-          { num: stats.total_challenges_passed > 0 ? `${Math.round((stats.total_challenges_passed / Math.max(stats.active_challenges + stats.total_challenges_passed, 1)) * 100)}%` : lang === 'en' ? 'New' : 'አዲስ', label: lang === 'en' ? 'Pass rate' : 'ማለፊያ ደረጃ' },
-          { num: '48h', label: lang === 'en' ? 'Payout processing' : 'የክፍያ ጊዜ' },
-        ].map((s, i) => (
-          <div key={i} style={{
-            flex: 1, padding: '1.5rem 1.25rem',
-            borderRight: i < 3 ? '1px solid rgba(201,145,42,0.1)' : 'none',
-            textAlign: 'center',
-          }}>
-            <span style={{
-              fontFamily: "'Syne', sans-serif", fontSize: '1.8rem', fontWeight: 800,
-              color: 'var(--accent)', display: 'block', letterSpacing: '-0.03em',
-            }}>{s.num}</span>
-            <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: '2px' }}>{s.label}</div>
-          </div>
-        ))}
-      </div>
+      
     </section>
   );
 }

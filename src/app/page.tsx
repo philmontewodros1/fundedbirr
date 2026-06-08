@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import HeroSection from '@/components/HeroSection';
+import StatsBar from '@/components/StatsBar';
 
 const ACCOUNTS = [
   { name: 'BF 10K', size: '$10,000 virtual', price: '3,000 ETB', target: '10%', daily: '5%', max: '10%', popular: false },
@@ -8,24 +9,13 @@ const ACCOUNTS = [
   { name: 'BF 100K', size: '$100,000 virtual', price: '20,000 ETB', target: '10%', daily: '5%', max: '10%', popular: false },
 ];
 
-async function getStats() {
-  let stats = { total_traders: 0, total_paid_etb: 0, active_challenges: 0, total_challenges_passed: 0 };
-  try {
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://fundedbirr.com';
-    const res = await fetch(`${baseUrl}/api/stats/public`, {
-      next: { revalidate: 3600 },
-    });
-    if (res.ok) stats = await res.json();
-  } catch {}
-  return stats;
-}
-
-export default async function HomePage() {
-  const stats = await getStats();
-
+export default function HomePage() {
   return (
     <>
-      <HeroSection stats={stats} />
+      <HeroSection />
+      <section style={{ padding: '0 2rem', maxWidth: '1100px', margin: '0 auto' }}>
+        <StatsBar />
+      </section>
 
       {/* HOW IT WORKS */}
       <section className="section" id="how" style={{ padding: '5rem 2rem', maxWidth: '1100px', margin: '0 auto' }}>

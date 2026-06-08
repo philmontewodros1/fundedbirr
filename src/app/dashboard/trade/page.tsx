@@ -181,16 +181,19 @@ export default function TradePage() {
         setAsk(Math.round((p + SPREAD) * 100) / 100)
 
         setOpenTrades((prev) => {
-          prev.forEach((t) => {
-            if (t.symbol === 'XAUUSD' && (t.sl || t.tp)) {
-              const hit =
-                (t.direction === 'buy' && t.sl && p <= t.sl) ||
-                (t.direction === 'buy' && t.tp && p >= t.tp) ||
-                (t.direction === 'sell' && t.sl && p >= t.sl) ||
-                (t.direction === 'sell' && t.tp && p <= t.tp)
-              if (hit) closeTrade(t.id, p)
+          const toClose = prev.filter((t) => {
+            if (t.symbol !== 'XAUUSD') return false
+            if (t.direction === 'buy') {
+              return (t.sl && p <= t.sl) || (t.tp && p >= t.tp)
+            } else {
+              return (t.sl && p >= t.sl) || (t.tp && p <= t.tp)
             }
           })
+          if (toClose.length > 0) {
+            setTimeout(() => {
+              toClose.forEach((t) => closeTrade(t.id, p))
+            }, 0)
+          }
           return prev
         })
       } catch (_) {}

@@ -1,37 +1,54 @@
-// src/app/api/trade/open/route.ts
 import { NextRequest, NextResponse } from 'next/server'
+import { createServerClient } from '@supabase/ssr'
 import { createClient } from '@supabase/supabase-js'
+import { cookies } from 'next/headers'
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-)
+const MAX_LOT_BY_ACCOUNT: Record<string, number> = {
+  '10000': 2.0,
+  '25000': 5.0,
+  '50000': 10.0,
+  '100000': 20.0,
+}
 
 export async function POST(req: NextRequest) {
   try {
-    const { challenge_id, direction, lot_size, entry_price, sl, tp, user_id, symbol } =
+    const cookieStore = cookies()
+    const supabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          getAll() { return cookieStore.getAll() },
+          setAll() {},
+        },
+      }
+    )
+
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    const { challenge_id, direction, lot_size, entry_price, sl, tp, symbol } =
       await req.json()
 
-    // Validate inputs
     if (!['buy', 'sell'].includes(direction)) {
       return NextResponse.json({ error: 'Invalid direction' }, { status: 400 })
-    }
-    if (lot_size < 0.01 || lot_size > 10) {
-      return NextResponse.json(
-        { error: 'Lot size must be between 0.01 and 10' },
-        { status: 400 }
-      )
     }
     if (!entry_price || entry_price <= 0) {
       return NextResponse.json({ error: 'Invalid entry price' }, { status: 400 })
     }
 
-    // Verify challenge is active and belongs to user
-    const { data: challenge, error: challengeErr } = await supabase
+    const admin = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    )
+
+    const { data: challenge, error: challengeErr } = await admin
       .from('challenges')
       .select('*')
       .eq('id', challenge_id)
-      .eq('user_id', user_id)
+      .eq('user_id', user.id)
       .single()
 
     if (challengeErr || !challenge) {
@@ -44,9 +61,15 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    // Initialize balance/equity if first trade
+    const maxLot = MAX_LOT_BY_ACCOUNT[String(challenge.virtual_balance)] || 1.0
+    if (lot_size < 0.01 || lot_size > maxLot) {
+      return NextResponse.json({
+        error: `Lot size must be between 0.01 and ${maxLot} for this account`
+      }, { status: 400 })
+    }
+
     if (!challenge.current_balance) {
-      await supabase
+      await admin
         .from('challenges')
         .update({
           current_balance: challenge.virtual_balance,
@@ -57,12 +80,11 @@ export async function POST(req: NextRequest) {
         .eq('id', challenge_id)
     }
 
-    // Insert trade
-    const { data: trade, error: tradeErr } = await supabase
+    const { data: trade, error: tradeErr } = await admin
       .from('trades')
       .insert({
         challenge_id,
-        user_id,
+        user_id: user.id,
         symbol: symbol || 'XAUUSD',
         direction,
         lot_size,

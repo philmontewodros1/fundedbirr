@@ -1,3 +1,9 @@
+// Only run as standalone process — never on Vercel
+if (process.env.VERCEL) {
+  console.log('Running on Vercel — use webhook mode, not polling. Exiting bot.mjs.');
+  process.exit(0);
+}
+
 import 'dotenv/config';
 import TelegramBot from 'node-telegram-bot-api';
 import Groq from 'groq-sdk';

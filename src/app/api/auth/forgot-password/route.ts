@@ -30,7 +30,7 @@ export async function POST(req: NextRequest) {
       type: 'recovery',
       email,
       options: {
-        redirectTo: `${process.env.NEXT_PUBLIC_APP_URL || 'https://fundedbirr.vercel.app'}/auth/reset-password`,
+        redirectTo: `${process.env.NEXT_PUBLIC_APP_URL}/auth/reset-password`,
       }
     })
 
