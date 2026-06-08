@@ -9,7 +9,7 @@ const supabase = createClient(
 
 export async function POST(req: NextRequest) {
   try {
-    const { challenge_id, direction, lot_size, entry_price, sl, tp, user_id } =
+    const { challenge_id, direction, lot_size, entry_price, sl, tp, user_id, symbol } =
       await req.json()
 
     // Validate inputs
@@ -63,7 +63,7 @@ export async function POST(req: NextRequest) {
       .insert({
         challenge_id,
         user_id,
-        symbol: 'XAUUSD',
+        symbol: symbol || 'XAUUSD',
         direction,
         lot_size,
         entry_price,

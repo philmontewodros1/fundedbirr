@@ -41,6 +41,35 @@ export const FUNDED_CONFIG = {
   consistencyPct: 50,
 };
 
+export const INSTRUMENTS: Record<string, { label: string, contractSize: number, category: string }> = {
+  XAUUSD: { label: 'XAUUSD · Gold', contractSize: 100, category: 'Commodities' },
+  XAGUSD: { label: 'XAGUSD · Silver', contractSize: 5000, category: 'Commodities' },
+  EURUSD: { label: 'EURUSD', contractSize: 100000, category: 'Forex' },
+  GBPUSD: { label: 'GBPUSD', contractSize: 100000, category: 'Forex' },
+  USDJPY: { label: 'USDJPY', contractSize: 100000, category: 'Forex' },
+  AUDUSD: { label: 'AUDUSD', contractSize: 100000, category: 'Forex' },
+  USDCAD: { label: 'USDCAD', contractSize: 100000, category: 'Forex' },
+  NZDUSD: { label: 'NZDUSD', contractSize: 100000, category: 'Forex' },
+  EURJPY: { label: 'EURJPY', contractSize: 100000, category: 'Forex' },
+  GBPJPY: { label: 'GBPJPY', contractSize: 100000, category: 'Forex' },
+  BTCUSD: { label: 'BTCUSD · Bitcoin', contractSize: 1, category: 'Crypto' },
+  SPX500: { label: 'SPX500 · S&P 500', contractSize: 100, category: 'Indices' },
+  US30:   { label: 'US30 · Dow Jones', contractSize: 100, category: 'Indices' },
+  NAS100: { label: 'NAS100 · Nasdaq', contractSize: 100, category: 'Indices' },
+};
+
+export const INSTRUMENT_LIST = Object.keys(INSTRUMENTS)
+
+export function getContractSize(symbol: string): number {
+  return INSTRUMENTS[symbol]?.contractSize || 100
+}
+
+export function getPipValue(symbol: string, lotSize: number): number {
+  const cs = getContractSize(symbol)
+  const pip = symbol.includes('JPY') ? 0.01 : 0.0001
+  return pip * lotSize * cs
+}
+
 export function getChallengeConfig(challengeType: string) {
   return {
     virtualBalance: CHALLENGE_VIRTUAL[challengeType] || 25000,

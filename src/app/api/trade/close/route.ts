@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { sendChallengeFailedEmail, sendChallengePassedEmail } from '@/lib/resend'
-import { PLAN_LABELS } from '@/lib/constants'
+import { PLAN_LABELS, getContractSize } from '@/lib/constants'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -34,11 +34,12 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Challenge not found' }, { status: 404 })
     }
 
+    const contractSize = getContractSize(trade.symbol || 'XAUUSD')
     let pnl = 0
     if (trade.direction === 'buy') {
-      pnl = (exit_price - trade.entry_price) * trade.lot_size * 100
+      pnl = (exit_price - trade.entry_price) * trade.lot_size * contractSize
     } else {
-      pnl = (trade.entry_price - exit_price) * trade.lot_size * 100
+      pnl = (trade.entry_price - exit_price) * trade.lot_size * contractSize
     }
     pnl = Math.round(pnl * 100) / 100
 

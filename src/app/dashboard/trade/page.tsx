@@ -1,12 +1,14 @@
 'use client'
 
 import { useEffect, useRef, useState, useCallback } from 'react'
+import { INSTRUMENTS, INSTRUMENT_LIST, getContractSize } from '@/lib/constants'
 
 interface Trade {
   id: string
   direction: 'buy' | 'sell'
   lot_size: number
   entry_price: number
+  symbol: string
   exit_price?: number
   profit_loss: number
   sl?: number
@@ -31,10 +33,9 @@ interface Challenge {
 const SPREAD = 0.30
 
 function calcUnrealizedPnl(trade: Trade, price: number) {
-  if (trade.direction === 'buy') {
-    return (price - trade.entry_price) * trade.lot_size * 100
-  }
-  return (trade.entry_price - price) * trade.lot_size * 100
+  const cs = getContractSize(trade.symbol || 'XAUUSD')
+  if (trade.direction === 'buy') return (price - trade.entry_price) * trade.lot_size * cs
+  return (trade.entry_price - price) * trade.lot_size * cs
 }
 
 function pct(value: number, total: number) {
@@ -43,8 +44,10 @@ function pct(value: number, total: number) {
 
 export default function TradePage() {
   const chartRef = useRef<HTMLDivElement>(null)
+  const tvWidgetRef = useRef<any>(null)
   const [tvReady, setTvReady] = useState(false)
 
+  const [selectedSymbol, setSelectedSymbol] = useState('XAUUSD')
   const [price, setPrice] = useState<number>(0)
   const [bid, setBid] = useState<number>(0)
   const [ask, setAsk] = useState<number>(0)
@@ -64,6 +67,10 @@ export default function TradePage() {
   const phase = challenge?.phase || 1
   const profitTarget = phase === 1 ? 10 : 5
   const minDays = phase === 1 ? 5 : 3
+  const instr = INSTRUMENTS[selectedSymbol]
+  const tvSymbol = selectedSymbol === 'BTCUSD' ? 'BINANCE:BTCUSDT' : selectedSymbol === 'XAUUSD' ? 'OANDA:XAUUSD' : `OANDA:${selectedSymbol}`
+
+  const [tvChartId] = useState(() => 'tv_chart_' + Math.random().toString(36).slice(2, 8))
 
   useEffect(() => {
     import('@supabase/ssr').then(({ createBrowserClient }) => {
@@ -112,21 +119,20 @@ export default function TradePage() {
   }, [fetchPositions, fetchHistory])
 
   useEffect(() => {
-    if (!chartRef.current || tvReady) return
-    const id = 'tv_chart_' + Math.random().toString(36).slice(2, 8)
+    if (!chartRef.current) return
+    const id = tvChartId
     chartRef.current.id = id
-    setTvReady(true)
 
     const script = document.createElement('script')
     script.src = 'https://s3.tradingview.com/tv.js'
     script.async = true
     script.onload = () => {
       if (typeof (window as any).TradingView === 'undefined') return
-      new (window as any).TradingView.widget({
+      tvWidgetRef.current = new (window as any).TradingView.widget({
         container_id: id,
         width: '100%',
         height: 380,
-        symbol: 'OANDA:XAUUSD',
+        symbol: tvSymbol,
         interval: '60',
         timezone: 'Africa/Addis_Ababa',
         theme: 'dark',
@@ -155,7 +161,13 @@ export default function TradePage() {
       const el = document.getElementById(id)
       if (el) el.innerHTML = ''
     }
-  }, [tvReady])
+  }, [])
+
+  useEffect(() => {
+    if (tvWidgetRef.current) {
+      tvWidgetRef.current.setSymbol(tvSymbol, () => {})
+    }
+  }, [selectedSymbol])
 
   useEffect(() => {
     const poll = async () => {
@@ -170,7 +182,7 @@ export default function TradePage() {
 
         setOpenTrades((prev) => {
           prev.forEach((t) => {
-            if (t.sl || t.tp) {
+            if (t.symbol === 'XAUUSD' && (t.sl || t.tp)) {
               const hit =
                 (t.direction === 'buy' && t.sl && p <= t.sl) ||
                 (t.direction === 'buy' && t.tp && p >= t.tp) ||
@@ -184,7 +196,6 @@ export default function TradePage() {
       } catch (_) {}
     }
 
-    poll()
     const iv = setInterval(poll, 5000)
     return () => clearInterval(iv)
   }, [])
@@ -221,7 +232,8 @@ export default function TradePage() {
           entry_price: entryPrice,
           sl: slInput ? Number(slInput) : null,
           tp: tpInput ? Number(tpInput) : null,
-          user_id: userId
+          user_id: userId,
+          symbol: selectedSymbol
         })
       })
       const data = await res.json()
@@ -267,12 +279,17 @@ export default function TradePage() {
 
       {/* TOP BAR */}
       <div style={{ background: '#151810', borderBottom: '1px solid #1E2218', padding: '0.75rem 1.5rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.5rem' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
           <a href="/dashboard" style={{ color: '#9A9880', fontSize: '0.85rem', textDecoration: 'none' }}>← Dashboard</a>
           <span style={{ fontFamily: 'Syne, sans-serif', fontWeight: 800, color: '#F0C060', fontSize: '1.1rem' }}>
-            Funded<span style={{ color: '#28A86A' }}>Birr</span> Trader
+            Funded<span style={{ color: '#28A86A' }}>Birr</span>
           </span>
-          <span style={{ background: '#1E2218', padding: '0.2rem 0.75rem', borderRadius: '100px', fontSize: '0.8rem', color: '#E8B84B' }}>XAUUSD</span>
+          <select value={selectedSymbol} onChange={(e) => setSelectedSymbol(e.target.value)}
+            style={{ background: '#1E2218', border: '1px solid #2A2E20', color: '#F0C060', fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: '0.85rem', padding: '0.3rem 0.6rem', borderRadius: '8px', cursor: 'pointer' }}>
+            {INSTRUMENT_LIST.map((s) => (
+              <option key={s} value={s} style={{ background: '#1E2218', color: '#F5F2E8' }}>{INSTRUMENTS[s].label}</option>
+            ))}
+          </select>
           {challenge && (
             <span style={{
               background: phase === 1 ? '#2A2010' : '#102A1A',
@@ -329,7 +346,7 @@ export default function TradePage() {
                       const unrealized = calcUnrealizedPnl(t, price)
                       return (
                         <tr key={t.id} style={{ borderBottom: '1px solid #1E2218' }}>
-                          <td style={{ padding: '0.6rem 1rem', color: '#9A9880' }}>XAUUSD</td>
+                          <td style={{ padding: '0.6rem 1rem', color: '#9A9880' }}>{t.symbol || 'XAUUSD'}</td>
                           <td style={{ padding: '0.6rem 1rem', color: t.direction === 'buy' ? '#28A86A' : '#E84B4B', fontWeight: 700, textTransform: 'uppercase' }}>{t.direction}</td>
                           <td style={{ padding: '0.6rem 1rem' }}>{t.lot_size}</td>
                           <td style={{ padding: '0.6rem 1rem', fontFamily: 'Syne, sans-serif' }}>{t.entry_price.toFixed(2)}</td>
@@ -355,7 +372,7 @@ export default function TradePage() {
                 <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.8rem' }}>
                   <thead>
                     <tr style={{ background: '#151810', color: '#9A9880' }}>
-                      {['Date', 'Dir', 'Lots', 'Entry', 'Exit', 'P&L'].map((h) => (
+                      {['Symbol', 'Date', 'Dir', 'Lots', 'Entry', 'Exit', 'P&L'].map((h) => (
                         <th key={h} style={{ padding: '0.6rem 1rem', textAlign: 'left', fontWeight: 500 }}>{h}</th>
                       ))}
                     </tr>
@@ -363,6 +380,7 @@ export default function TradePage() {
                   <tbody>
                     {history.map((t) => (
                       <tr key={t.id} style={{ borderBottom: '1px solid #1E2218' }}>
+                        <td style={{ padding: '0.6rem 1rem', color: '#9A9880', fontSize: '0.75rem' }}>{t.symbol || 'XAUUSD'}</td>
                         <td style={{ padding: '0.6rem 1rem', color: '#9A9880', fontSize: '0.75rem' }}>{t.closed_at ? new Date(t.closed_at).toLocaleDateString() : '—'}</td>
                         <td style={{ padding: '0.6rem 1rem', color: t.direction === 'buy' ? '#28A86A' : '#E84B4B', fontWeight: 700, textTransform: 'uppercase' }}>{t.direction}</td>
                         <td style={{ padding: '0.6rem 1rem' }}>{t.lot_size}</td>
@@ -384,7 +402,7 @@ export default function TradePage() {
         <div style={{ background: '#151810', borderLeft: '1px solid #1E2218', display: 'flex', flexDirection: 'column', overflow: 'auto' }}>
 
           <div style={{ padding: '1.25rem', borderBottom: '1px solid #1E2218' }}>
-            <div style={{ fontSize: '0.7rem', color: '#9A9880', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '0.5rem' }}>XAUUSD · Gold</div>
+            <div style={{ fontSize: '0.7rem', color: '#9A9880', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '0.5rem' }}>{instr?.label || selectedSymbol}</div>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1rem' }}>
               <div>
                 <div style={{ fontSize: '0.7rem', color: '#9A9880' }}>BID</div>
