@@ -3,6 +3,7 @@ import HeroSection from '@/components/HeroSection';
 import StatsBar from '@/components/StatsBar';
 
 const ACCOUNTS = [
+  { name: 'BF 5K', size: '$5,000 virtual', price: '1,500 ETB', target: '10%', daily: '5%', max: '10%', popular: false },
   { name: 'BF 10K', size: '$10,000 virtual', price: '3,000 ETB', target: '10%', daily: '5%', max: '10%', popular: false },
   { name: 'BF 25K', size: '$25,000 virtual', price: '7,000 ETB', target: '10%', daily: '5%', max: '10%', popular: true },
   { name: 'BF 50K', size: '$50,000 virtual', price: '12,000 ETB', target: '10%', daily: '5%', max: '10%', popular: false },
