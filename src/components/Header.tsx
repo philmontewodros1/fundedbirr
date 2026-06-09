@@ -9,6 +9,7 @@ const NAV = [
   { label: 'Accounts', href: '/pricing' },
   { label: 'Leaderboard', href: '/leaderboard' },
   { label: 'Payouts', href: '/#payouts' },
+  { label: 'Academy ↗', href: 'https://fundedbirracademy.com', external: true },
 ];
 
 export default function Header() {
@@ -36,16 +37,29 @@ export default function Header() {
           </Link>
 
           <nav className="hidden md:flex items-center gap-8">
-            {NAV.map((item) => (
-              <Link
-                key={item.href}
-                href={item.href}
-                className="text-sm no-underline hover-nav"
-                style={{ color: 'var(--text-muted)' }}
-              >
-                {item.label}
-              </Link>
-            ))}
+            {NAV.map((item) =>
+              item.external ? (
+                <a
+                  key={item.href}
+                  href={item.href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-sm no-underline hover-nav"
+                  style={{ color: 'var(--text-muted)' }}
+                >
+                  {item.label}
+                </a>
+              ) : (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className="text-sm no-underline hover-nav"
+                  style={{ color: 'var(--text-muted)' }}
+                >
+                  {item.label}
+                </Link>
+              )
+            )}
           </nav>
 
           <div className="hidden md:flex items-center gap-4">
@@ -90,17 +104,31 @@ export default function Header() {
             >
               {lang === 'en' ? 'አማርኛ' : 'English'}
             </button>
-            {NAV.map((item) => (
-              <Link
-                key={item.href}
-                href={item.href}
-                onClick={() => setOpen(false)}
-                className="block text-sm no-underline"
-                style={{ color: 'var(--text-muted)' }}
-              >
-                {item.label}
-              </Link>
-            ))}
+            {NAV.map((item) =>
+              item.external ? (
+                <a
+                  key={item.href}
+                  href={item.href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={() => setOpen(false)}
+                  className="block text-sm no-underline"
+                  style={{ color: 'var(--text-muted)' }}
+                >
+                  {item.label}
+                </a>
+              ) : (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  onClick={() => setOpen(false)}
+                  className="block text-sm no-underline"
+                  style={{ color: 'var(--text-muted)' }}
+                >
+                  {item.label}
+                </Link>
+              )
+            )}
             <hr style={{ borderColor: 'rgba(255,255,255,0.05)' }} />
             <Link
               href="/auth/register"

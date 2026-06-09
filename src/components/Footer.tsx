@@ -36,6 +36,7 @@ export default function Footer() {
           <Link href="/faq" style={{ color: 'var(--text-muted)', textDecoration: 'none' }}>FAQ</Link>
           <Link href="/rules" style={{ color: 'var(--text-muted)', textDecoration: 'none' }}>Rules</Link>
           <a href="https://t.me/+D6Fhx_vQz4o1Y2U0" style={{ color: 'var(--text-muted)', textDecoration: 'none' }}>Telegram</a>
+          <a href="https://fundedbirracademy.com" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent)', textDecoration: 'none' }}>Academy ↗</a>
         </div>
         <div style={{ fontSize: '0.72rem', color: 'rgba(154,152,128,0.6)' }}>
           © {new Date().getFullYear()} FundedBirr. All rights reserved.
