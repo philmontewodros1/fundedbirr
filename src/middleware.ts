@@ -42,6 +42,16 @@ export async function middleware(req: NextRequest) {
   }
 
   if (isPublic && user) {
+    if (pathname === '/auth/register') {
+      const plan = req.nextUrl.searchParams.get('plan')
+      const model = req.nextUrl.searchParams.get('model')
+      if (plan) {
+        const payUrl = new URL('/dashboard/payment', req.url)
+        payUrl.searchParams.set('plan', plan)
+        payUrl.searchParams.set('model', model || '2step')
+        return NextResponse.redirect(payUrl)
+      }
+    }
     return NextResponse.redirect(new URL('/dashboard', req.url));
   }
 
