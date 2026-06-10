@@ -17,13 +17,17 @@ export default function ResetPasswordPage() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [ready, setReady] = useState(false);
 
   useEffect(() => {
-    supabase.auth.onAuthStateChange(async (event) => {
-      if (event === 'PASSWORD_RECOVERY') {
-      }
-    });
-  }, []);
+    supabase.auth.getSession().then(({ data }) => {
+      if (data.session) setReady(true)
+    })
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
+      if (event === 'PASSWORD_RECOVERY') setReady(true)
+    })
+    return () => subscription?.unsubscribe()
+  }, [])
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -87,40 +91,56 @@ export default function ResetPasswordPage() {
             Funded<span style={{ color: 'var(--green-light)' }}>Birr</span>
           </Link>
           <h2 style={{ fontFamily: "'Syne', sans-serif", fontWeight: 700, fontSize: '1.4rem', marginTop: '1.5rem', marginBottom: '0.25rem' }}>
-            Set New Password
+            {ready ? 'Set New Password' : 'Verifying...'}
           </h2>
+          <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>
+            {ready ? 'Enter your new password below' : 'Please wait while we verify your reset link...'}
+          </p>
         </div>
 
-        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-          <div>
-            <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '0.4rem' }}>New Password</label>
-            <input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="Min 6 characters" required minLength={6}
-              style={{
-                width: '100%', padding: '0.75rem 1rem', background: 'rgba(255,255,255,0.04)',
-                border: '1px solid rgba(255,255,255,0.08)', borderRadius: '8px',
-                color: 'var(--text)', fontSize: '0.9rem', outline: 'none',
-              }} />
+        {ready ? (
+          <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+            <div>
+              <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '0.4rem' }}>New Password</label>
+              <input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="Min 6 characters" required minLength={6}
+                style={{
+                  width: '100%', padding: '0.75rem 1rem', background: 'rgba(255,255,255,0.04)',
+                  border: '1px solid rgba(255,255,255,0.08)', borderRadius: '8px',
+                  color: 'var(--text)', fontSize: '0.9rem', outline: 'none',
+                }} />
+            </div>
+            <div>
+              <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '0.4rem' }}>Confirm Password</label>
+              <input type="password" value={confirm} onChange={e => setConfirm(e.target.value)} placeholder="Repeat password" required
+                style={{
+                  width: '100%', padding: '0.75rem 1rem', background: 'rgba(255,255,255,0.04)',
+                  border: '1px solid rgba(255,255,255,0.08)', borderRadius: '8px',
+                  color: 'var(--text)', fontSize: '0.9rem', outline: 'none',
+                }} />
+            </div>
+            {error && (
+              <div style={{ color: '#ff6b6b', fontSize: '0.85rem', textAlign: 'center' }}>{error}</div>
+            )}
+            <button type="submit" disabled={loading} className="btn-primary" style={{
+              padding: '0.75rem', borderRadius: '8px', fontSize: '0.95rem',
+              border: 'none', cursor: loading ? 'not-allowed' : 'pointer', opacity: loading ? 0.6 : 1,
+              marginTop: '0.5rem',
+            }}>
+              {loading ? 'Updating...' : 'Update Password'}
+            </button>
+          </form>
+        ) : (
+          <div style={{ textAlign: 'center', padding: '1rem', color: 'var(--text-muted)' }}>
+            <div style={{ display: 'inline-block', width: '24px', height: '24px', border: '2px solid var(--gold-light)', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
           </div>
-          <div>
-            <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '0.4rem' }}>Confirm Password</label>
-            <input type="password" value={confirm} onChange={e => setConfirm(e.target.value)} placeholder="Repeat password" required
-              style={{
-                width: '100%', padding: '0.75rem 1rem', background: 'rgba(255,255,255,0.04)',
-                border: '1px solid rgba(255,255,255,0.08)', borderRadius: '8px',
-                color: 'var(--text)', fontSize: '0.9rem', outline: 'none',
-              }} />
-          </div>
-          {error && (
-            <div style={{ color: '#ff6b6b', fontSize: '0.85rem', textAlign: 'center' }}>{error}</div>
-          )}
-          <button type="submit" disabled={loading} className="btn-primary" style={{
-            padding: '0.75rem', borderRadius: '8px', fontSize: '0.95rem',
-            border: 'none', cursor: loading ? 'not-allowed' : 'pointer', opacity: loading ? 0.6 : 1,
-            marginTop: '0.5rem',
-          }}>
-            {loading ? 'Updating...' : 'Update Password'}
-          </button>
-        </form>
+        )}
+
+        {!ready && (
+          <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', textAlign: 'center', marginTop: '1.5rem' }}>
+            Didn't work?{' '}
+            <Link href="/auth/forgot-password" style={{ color: 'var(--gold-light)', textDecoration: 'none' }}>Request a new link</Link>
+          </p>
+        )}
       </div>
     </section>
   );

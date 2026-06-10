@@ -26,19 +26,24 @@ export default function AdminMT5Page() {
   const [poolAccounts, setPoolAccounts] = useState<any[]>([])
   const [addForm, setAddForm] = useState({ server: 'Exness-MT5Trial9', login: '', password: '', investor_password: '', balance_usd: '10000', challenge_size: 'bf10k' })
   const [adding, setAdding] = useState(false)
+  const [addError, setAddError] = useState('')
   const [tab, setTab] = useState<'sync' | 'pool'>('sync')
 
   useEffect(() => { fetchData() }, [])
 
   const fetchData = async () => {
-    const [syncRes, poolRes] = await Promise.all([
-      fetch('/api/admin/mt5-sync'),
-      fetch('/api/admin/mt5-pool'),
-    ])
-    const syncData = await syncRes.json()
-    const poolData = await poolRes.json()
-    setChallenges(syncData.challenges || [])
-    setPoolAccounts(poolData.accounts || [])
+    try {
+      const [syncRes, poolRes] = await Promise.all([
+        fetch('/api/admin/mt5-sync'),
+        fetch('/api/admin/mt5-pool'),
+      ])
+      const syncData = await syncRes.json()
+      const poolData = await poolRes.json()
+      setChallenges(syncData.challenges || [])
+      setPoolAccounts(poolData.accounts || [])
+    } catch (e) {
+      console.error('fetchData error', e)
+    }
   }
 
   const openSync = (c: MT5Challenge) => {
@@ -53,25 +58,41 @@ export default function AdminMT5Page() {
     if (!syncModal) return
     setSyncing(true)
     setSyncResult(null)
-    const res = await fetch('/api/admin/mt5-sync', {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ challenge_id: syncModal.id, balance: Number(balance), equity: Number(equity), add_trading_day: addDay })
-    })
-    const data = await res.json()
-    setSyncResult(data)
+    try {
+      const res = await fetch('/api/admin/mt5-sync', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ challenge_id: syncModal.id, balance: Number(balance), equity: Number(equity), add_trading_day: addDay })
+      })
+      const data = await res.json()
+      setSyncResult(data)
+      if (data.success) await fetchData()
+    } catch (e: any) {
+      setSyncResult({ error: e.message })
+    }
     setSyncing(false)
-    if (data.success) fetchData()
   }
 
   const addToPool = async () => {
+    setAddError('')
+    if (!addForm.login || !addForm.password || !addForm.investor_password) {
+      setAddError('Please fill in all account fields')
+      return
+    }
     setAdding(true)
-    const res = await fetch('/api/admin/mt5-pool', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(addForm)
-    })
-    if (res.ok) { fetchData(); setAddForm({ server: 'Exness-MT5Trial9', login: '', password: '', investor_password: '', balance_usd: '10000', challenge_size: 'bf10k' }) }
+    try {
+      const res = await fetch('/api/admin/mt5-pool', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(addForm)
+      })
+      const data = await res.json()
+      if (!res.ok) { setAddError(data.error || 'Failed to add account'); setAdding(false); return }
+      await fetchData()
+      setAddForm({ server: 'Exness-MT5Trial9', login: '', password: '', investor_password: '', balance_usd: '10000', challenge_size: 'bf10k' })
+    } catch (e: any) {
+      setAddError(e.message || 'Network error')
+    }
     setAdding(false)
   }
 
@@ -202,6 +223,7 @@ export default function AdminMT5Page() {
                 </select>
               </div>
             </div>
+            {addError && <div style={{ color: '#E84B4B', fontSize: '0.82rem', marginTop: '0.5rem' }}>{addError}</div>}
             <button style={{ ...S.submitBtn, width: 'auto', padding: '0.7rem 2rem' }} onClick={addToPool} disabled={adding}>
               {adding ? 'Adding...' : '+ Add to Pool'}
             </button>
@@ -250,14 +272,20 @@ export default function AdminMT5Page() {
             </label>
 
             {syncResult && (
-              <div style={{ padding: '0.75rem', borderRadius: '8px', marginBottom: '1rem', background: syncResult.new_status === 'failed' ? 'rgba(232,75,75,0.08)' : syncResult.new_status === 'passed' ? 'rgba(40,168,106,0.08)' : '#1E2218', border: `1px solid ${syncResult.new_status === 'failed' ? 'rgba(232,75,75,0.2)' : syncResult.new_status === 'passed' ? 'rgba(40,168,106,0.2)' : '#272C1F'}` }}>
-                <div style={{ fontSize: '0.8rem', color: '#F5F2E8', marginBottom: '4px', fontWeight: 500 }}>
-                  {syncResult.status_changed ? `Status changed to: ${syncResult.new_status?.toUpperCase()}` : 'Synced successfully'}
-                </div>
-                <div style={{ fontSize: '0.75rem', color: '#9A9880' }}>
-                  Daily DD: {syncResult.daily_dd_pct}% · Max DD: {syncResult.max_dd_pct}% · Profit: {syncResult.profit_pct}% · Days: {syncResult.trading_days}
-                </div>
-                {syncResult.fail_reason && <div style={{ fontSize: '0.75rem', color: '#E84B4B', marginTop: '4px' }}>{syncResult.fail_reason}</div>}
+              <div style={{ padding: '0.75rem', borderRadius: '8px', marginBottom: '1rem', background: syncResult.error ? 'rgba(232,75,75,0.08)' : syncResult.new_status === 'failed' ? 'rgba(232,75,75,0.08)' : syncResult.new_status === 'passed' ? 'rgba(40,168,106,0.08)' : '#1E2218', border: `1px solid ${syncResult.error ? 'rgba(232,75,75,0.2)' : syncResult.new_status === 'failed' ? 'rgba(232,75,75,0.2)' : syncResult.new_status === 'passed' ? 'rgba(40,168,106,0.2)' : '#272C1F'}` }}>
+                {syncResult.error ? (
+                  <div style={{ fontSize: '0.8rem', color: '#E84B4B', fontWeight: 500 }}>{syncResult.error}</div>
+                ) : (
+                  <>
+                    <div style={{ fontSize: '0.8rem', color: '#F5F2E8', marginBottom: '4px', fontWeight: 500 }}>
+                      {syncResult.status_changed ? `Status changed to: ${syncResult.new_status?.toUpperCase()}` : 'Synced successfully'}
+                    </div>
+                    <div style={{ fontSize: '0.75rem', color: '#9A9880' }}>
+                      Daily DD: {syncResult.daily_dd_pct}% · Max DD: {syncResult.max_dd_pct}% · Profit: {syncResult.profit_pct}% · Days: {syncResult.trading_days}
+                    </div>
+                    {syncResult.fail_reason && <div style={{ fontSize: '0.75rem', color: '#E84B4B', marginTop: '4px' }}>{syncResult.fail_reason}</div>}
+                  </>
+                )}
               </div>
             )}
 
