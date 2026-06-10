@@ -5,11 +5,6 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createBrowserClient } from '@supabase/ssr';
 
-const supabase = createBrowserClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-);
-
 export default function ResetPasswordPage() {
   const router = useRouter();
   const [password, setPassword] = useState('');
@@ -20,13 +15,33 @@ export default function ResetPasswordPage() {
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => {
-      if (data.session) setReady(true)
-    })
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
-      if (event === 'PASSWORD_RECOVERY') setReady(true)
-    })
-    return () => subscription?.unsubscribe()
+    const supabase = createBrowserClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    );
+
+    const hash = window.location.hash.substring(1)
+    const params = new URLSearchParams(hash)
+    const type = params.get('type')
+    const accessToken = params.get('access_token')
+    const refreshToken = params.get('refresh_token')
+
+    if (type === 'recovery' && accessToken) {
+      supabase.auth.setSession({
+        access_token: accessToken,
+        refresh_token: refreshToken || '',
+      }).then(({ error }) => {
+        if (!error) setReady(true)
+        else setError('Failed to verify reset link. Try requesting a new one.')
+      })
+    } else {
+      supabase.auth.getSession().then(({ data }) => {
+        if (data.session) setReady(true)
+      })
+      supabase.auth.onAuthStateChange((event) => {
+        if (event === 'PASSWORD_RECOVERY') setReady(true)
+      })
+    }
   }, [])
 
   async function handleSubmit(e: React.FormEvent) {
@@ -46,6 +61,10 @@ export default function ResetPasswordPage() {
     setLoading(true);
 
     try {
+      const supabase = createBrowserClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      );
       const { error } = await supabase.auth.updateUser({ password });
 
       if (error) {
@@ -91,10 +110,10 @@ export default function ResetPasswordPage() {
             Funded<span style={{ color: 'var(--green-light)' }}>Birr</span>
           </Link>
           <h2 style={{ fontFamily: "'Syne', sans-serif", fontWeight: 700, fontSize: '1.4rem', marginTop: '1.5rem', marginBottom: '0.25rem' }}>
-            {ready ? 'Set New Password' : 'Verifying...'}
+            {ready ? 'Set New Password' : error ? 'Link Expired' : 'Verifying...'}
           </h2>
           <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>
-            {ready ? 'Enter your new password below' : 'Please wait while we verify your reset link...'}
+            {ready ? 'Enter your new password below' : error ? error : 'Please wait while we verify your reset link...'}
           </p>
         </div>
 
@@ -131,13 +150,15 @@ export default function ResetPasswordPage() {
           </form>
         ) : (
           <div style={{ textAlign: 'center', padding: '1rem', color: 'var(--text-muted)' }}>
-            <div style={{ display: 'inline-block', width: '24px', height: '24px', border: '2px solid var(--gold-light)', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+            {!error && (
+              <div style={{ display: 'inline-block', width: '24px', height: '24px', border: '2px solid var(--gold-light)', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+            )}
           </div>
         )}
 
         {!ready && (
           <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', textAlign: 'center', marginTop: '1.5rem' }}>
-            Didn't work?{' '}
+            Didn&apos;t work?{' '}
             <Link href="/auth/forgot-password" style={{ color: 'var(--gold-light)', textDecoration: 'none' }}>Request a new link</Link>
           </p>
         )}
