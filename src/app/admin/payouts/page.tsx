@@ -23,6 +23,7 @@ export default function AdminPayoutsPage() {
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState<'payments' | 'payouts'>('payments');
   const [rejectReason, setRejectReason] = useState<Record<string, string>>({});
+  const [actionError, setActionError] = useState('');
   const [confirm, setConfirm] = useState<{ action: string; id: string; label: string; danger?: boolean } | null>(null);
 
   // Search & filter
@@ -77,12 +78,18 @@ export default function AdminPayoutsPage() {
     if (status === 'rejected' && rejectReason[id]) {
       body.rejectionReason = rejectReason[id];
     }
-    await fetch(endpoint, {
+    const res = await fetch(endpoint, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body),
     });
     setConfirm(null);
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      setActionError(data.error || `Request failed (${res.status})`);
+      return;
+    }
+    setActionError('');
     if (endpoint.includes('telebirr')) loadPayments();
     else loadPayouts();
   }
@@ -113,6 +120,12 @@ export default function AdminPayoutsPage() {
       <Link href="/admin" style={{ color: 'var(--text-muted)', fontSize: '0.85rem', textDecoration: 'none', display: 'block', marginBottom: '2rem' }}>
         ← Back to Admin
       </Link>
+
+      {actionError && (
+        <div style={{ background: 'rgba(255,107,107,0.1)', border: '1px solid rgba(255,107,107,0.3)', borderRadius: '10px', padding: '0.75rem 1rem', marginBottom: '1rem', color: '#ff6b6b', fontSize: '0.85rem' }}>
+          {actionError}
+        </div>
+      )}
 
       <h1 style={{ fontFamily: "'Syne', sans-serif", fontSize: '1.8rem', fontWeight: 800, letterSpacing: '-0.03em', marginBottom: '1.5rem' }}>
         Payment Management

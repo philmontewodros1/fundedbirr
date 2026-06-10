@@ -11,6 +11,10 @@ alter table challenges add column if not exists mt5_investor_password text;
 alter table challenges add column if not exists mt5_connected boolean default false;
 alter table challenges add column if not exists mt5_last_sync timestamp;
 
+-- Add model column to challenges and payments
+alter table challenges add column if not exists model text not null default '2step';
+alter table payments add column if not exists model text not null default '2step';
+
 -- MT5 account pool table
 create table if not exists mt5_account_pool (
   id uuid primary key default gen_random_uuid(),
