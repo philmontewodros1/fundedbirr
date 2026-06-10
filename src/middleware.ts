@@ -62,6 +62,27 @@ export async function middleware(req: NextRequest) {
     }
   }
 
+  // Redirect to mode selection if active challenge has no trading_mode
+  if (pathname.startsWith('/dashboard') && pathname !== '/dashboard/select-mode' && user) {
+    const admin = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!,
+      { auth: { autoRefreshToken: false, persistSession: false } },
+    );
+    const { data: challenge } = await admin
+      .from('challenges')
+      .select('trading_mode, status')
+      .eq('user_id', user.id)
+      .eq('status', 'active')
+      .order('started_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (challenge && challenge.status === 'active' && !challenge.trading_mode) {
+      return NextResponse.redirect(new URL('/dashboard/select-mode', req.url));
+    }
+  }
+
   return res;
 }
 

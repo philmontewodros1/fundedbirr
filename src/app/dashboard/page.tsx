@@ -18,6 +18,12 @@ interface Challenge {
   max_loss_limit: number;
   trading_days_count?: number;
   started_at: string;
+  trading_mode?: string;
+  mt5_server?: string;
+  mt5_login?: string;
+  mt5_investor_password?: string;
+  mt5_connected?: boolean;
+  mt5_last_sync?: string;
 }
 
 interface PaymentInfo {
@@ -126,6 +132,25 @@ export default function DashboardPage() {
 
       {challenge ? (
         <>
+          {/* Trading Mode Badge */}
+          <div style={{ marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+            {challenge.trading_mode === 'web' && (
+              <span style={{ background: 'rgba(75,158,255,0.12)', color: '#4B9EFF', border: '1px solid rgba(75,158,255,0.25)', padding: '4px 12px', borderRadius: '100px', fontSize: '0.72rem', fontWeight: 700, letterSpacing: '0.05em' }}>
+                Web Terminal
+              </span>
+            )}
+            {challenge.trading_mode === 'mt5' && (
+              <span style={{ background: 'rgba(40,168,106,0.12)', color: '#28A86A', border: '1px solid rgba(40,168,106,0.25)', padding: '4px 12px', borderRadius: '100px', fontSize: '0.72rem', fontWeight: 700, letterSpacing: '0.05em' }}>
+                MT5 Mode
+              </span>
+            )}
+            {!challenge.trading_mode && (
+              <Link href="/dashboard/select-mode" style={{ background: 'rgba(232,184,75,0.12)', color: '#E8B84B', border: '1px solid rgba(232,184,75,0.25)', padding: '4px 12px', borderRadius: '100px', fontSize: '0.72rem', fontWeight: 700, letterSpacing: '0.05em', textDecoration: 'none' }}>
+                Select Trading Mode →
+              </Link>
+            )}
+          </div>
+
           {/* Metric Cards */}
           <div style={{
             display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '12px', marginBottom: '2rem',
@@ -153,7 +178,7 @@ export default function DashboardPage() {
             ))}
           </div>
 
-          {challenge.status === 'active' && (
+          {challenge.status === 'active' && challenge.trading_mode === 'web' && (
             <div style={{
               background: 'rgba(201,145,42,0.08)', border: '1px solid rgba(201,145,42,0.25)',
               borderRadius: '14px', padding: '1.5rem', marginBottom: '2rem', textAlign: 'center',
@@ -170,8 +195,70 @@ export default function DashboardPage() {
                 borderRadius: '10px', fontFamily: "'Syne', sans-serif", fontWeight: 700,
                 fontSize: '1rem', display: 'inline-block', letterSpacing: '-0.02em',
               }}>
-                🟡 Open Trading Terminal →
+                Open Trading Terminal →
               </a>
+            </div>
+          )}
+
+          {challenge.status === 'active' && challenge.trading_mode === 'mt5' && (
+            <div style={{
+              background: 'var(--dark-2)', border: '1px solid rgba(75,158,255,0.2)',
+              borderRadius: '14px', padding: '1.5rem', marginBottom: '2rem',
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.25rem' }}>
+                <span style={{ fontSize: '1.4rem' }}>🖥️</span>
+                <div>
+                  <h3 style={{ fontFamily: "'Syne', sans-serif", fontWeight: 700, fontSize: '1.05rem', margin: 0 }}>Your MT5 Account</h3>
+                  <p style={{ color: 'var(--text-muted)', fontSize: '0.78rem', margin: '2px 0 0' }}>
+                    Last synced: {challenge.mt5_last_sync ? new Date(challenge.mt5_last_sync).toLocaleString() : 'Not yet'}
+                  </p>
+                </div>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginBottom: '1rem' }}>
+                <div>
+                  <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Server</div>
+                  <div style={{ fontFamily: "'Syne', sans-serif", fontSize: '0.95rem', fontWeight: 600 }}>{challenge.mt5_server || 'Exness-MT5Trial9'}</div>
+                </div>
+                <div>
+                  <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Login</div>
+                  <div style={{ fontFamily: "'Syne', sans-serif", fontSize: '0.95rem', fontWeight: 600 }}>{challenge.mt5_login || '—'}</div>
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginTop: '0.75rem' }}>
+                <a href="https://metatrader5.com/download" target="_blank" rel="noopener noreferrer" className="no-underline" style={{ background: '#1E2218', color: '#F5F2E8', border: '1px solid #272C1F', borderRadius: '8px', padding: '0.5rem 1rem', fontSize: '0.82rem', fontFamily: "'Syne', sans-serif", fontWeight: 600 }}>
+                  Download MT5
+                </a>
+                <a href="https://web.exness.com" target="_blank" rel="noopener noreferrer" className="no-underline" style={{ background: '#1E2218', color: '#F5F2E8', border: '1px solid #272C1F', borderRadius: '8px', padding: '0.5rem 1rem', fontSize: '0.82rem', fontFamily: "'Syne', sans-serif", fontWeight: 600 }}>
+                  Trade on Web
+                </a>
+                <Link href="/dashboard/mt5-guide" className="no-underline" style={{ background: '#C9912A', color: '#0D0F0A', border: 'none', borderRadius: '8px', padding: '0.5rem 1rem', fontSize: '0.82rem', fontFamily: "'Syne', sans-serif", fontWeight: 600 }}>
+                  Setup Guide →
+                </Link>
+              </div>
+            </div>
+          )}
+
+          {challenge.status === 'active' && !challenge.trading_mode && (
+            <div style={{
+              background: 'rgba(232,184,75,0.08)', border: '1px solid rgba(232,184,75,0.25)',
+              borderRadius: '14px', padding: '1.5rem', marginBottom: '2rem', textAlign: 'center',
+            }}>
+              <div style={{ fontSize: '1.5rem', marginBottom: '0.75rem' }}>⚙️</div>
+              <h2 style={{ fontFamily: "'Syne', sans-serif", fontWeight: 700, fontSize: '1.2rem', marginBottom: '0.5rem', color: 'var(--gold-light)' }}>
+                Choose Your Trading Mode
+              </h2>
+              <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', marginBottom: '1.25rem' }}>
+                Your challenge is active! Select how you want to trade — web terminal or MT5.
+              </p>
+              <Link href="/dashboard/select-mode" className="no-underline" style={{
+                background: '#C9912A', color: '#0D0F0A', padding: '0.85rem 2rem',
+                borderRadius: '10px', fontFamily: "'Syne', sans-serif", fontWeight: 700,
+                fontSize: '1rem', display: 'inline-block', letterSpacing: '-0.02em',
+              }}>
+                Select Trading Mode →
+              </Link>
             </div>
           )}
 

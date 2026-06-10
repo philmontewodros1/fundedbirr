@@ -27,6 +27,7 @@ export default function AdminPage() {
     { label: 'Payments', href: '/admin/payouts', desc: `${stats?.pendingPayments || 0} pending approvals`, color: '#E8B84B' },
     { label: 'KYC', href: '/admin/kyc', desc: `${stats?.pendingKyc || 0} documents to review`, color: '#A865E8' },
     { label: 'Challenges', href: '/admin/challenges', desc: `${stats?.activeChallenges || 0} active challenges`, color: '#28A86A' },
+    { label: 'MT5 Pool & Sync', href: '/admin/mt5-pool', desc: 'Manage MT5 accounts and sync balances', color: '#4B9EFF' },
   ];
 
   return (

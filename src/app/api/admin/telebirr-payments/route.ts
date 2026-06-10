@@ -3,6 +3,7 @@ import { withAdmin, adminError, adminSuccess } from '@/lib/admin-guard';
 import { logAdminAction } from '@/lib/admin-audit';
 import { getChallengeConfig } from '@/lib/constants';
 import { sendChallengeEmail } from '@/lib/resend';
+import { Resend } from 'resend';
 
 export const dynamic = 'force-dynamic';
 
@@ -102,7 +103,28 @@ export async function PATCH(req: Request) {
       const challengeModel = payment.model || '2step';
       const config = getChallengeConfig(challengeType, challengeModel);
 
-      const { error: challengeError } = await adminClient.from('challenges').insert({
+      // Try to auto-assign MT5 account from pool
+      const { data: mt5Account } = await adminClient
+        .from('mt5_account_pool')
+        .select('*')
+        .eq('is_assigned', false)
+        .eq('challenge_size', challengeType)
+        .limit(1)
+        .maybeSingle();
+
+      let mt5Fields: Record<string, any> = {};
+      if (mt5Account) {
+        mt5Fields = {
+          trading_mode: 'mt5',
+          mt5_broker: 'Exness',
+          mt5_server: mt5Account.server,
+          mt5_login: mt5Account.login,
+          mt5_investor_password: mt5Account.investor_password,
+          mt5_connected: true,
+        };
+      }
+
+      const { data: newChallenge, error: challengeError } = await adminClient.from('challenges').insert({
         user_id: payment.user_id,
         account_size: challengeType,
         model: challengeModel,
@@ -115,16 +137,47 @@ export async function PATCH(req: Request) {
         max_loss_limit: config.maxLoss,
         approved_by: admin.id,
         approved_at: new Date().toISOString(),
-      });
+        ...mt5Fields,
+      }).select().single();
 
       if (challengeError) {
         console.error('Challenge creation error:', challengeError);
       }
 
+      if (mt5Account && newChallenge) {
+        await adminClient
+          .from('mt5_account_pool')
+          .update({ is_assigned: true, assigned_to: newChallenge.id, assigned_at: new Date().toISOString() })
+          .eq('id', mt5Account.id);
+      }
+
       const userProfile = payment.users;
       if (userProfile) {
         try {
-          await sendChallengeEmail(userProfile.email, userProfile.full_name, challengeType, challengeModel);
+          if (mt5Account) {
+            const resend = new Resend(process.env.RESEND_API_KEY);
+            await resend.emails.send({
+              from: 'FundedBirr <noreply@fundedbirr.com>',
+              to: userProfile.email,
+              subject: `Your ${challengeType.toUpperCase()} MT5 Challenge Is Live!`,
+              html: `
+                <p>Hi ${userProfile.full_name},</p>
+                <p>Your <strong>${challengeType.toUpperCase()}</strong> challenge has been activated with <strong>MT5 mode</strong>.</p>
+                <p><strong>Your MT5 Account:</strong></p>
+                <div style="background:#151810;padding:1rem;border-radius:8px;">
+                  <p>Server: ${mt5Account.server}</p>
+                  <p>Login: ${mt5Account.login}</p>
+                  <p>Password: (your trading password from Exness)</p>
+                  <p>Investor Password: ${mt5Account.investor_password}</p>
+                </div>
+                <p>Login to MT5 using the server and login above. Use your own Exness trading password to trade.</p>
+                <p>Admin will sync your balance daily to track drawdown and profit targets.</p>
+                <p><a href="https://fundedbirr.com/dashboard">Go to Dashboard</a></p>
+              `,
+            });
+          } else {
+            await sendChallengeEmail(userProfile.email, userProfile.full_name, challengeType, challengeModel);
+          }
         } catch (e) {
           console.error('Email error:', e);
         }
