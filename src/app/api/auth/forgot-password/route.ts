@@ -30,7 +30,7 @@ export async function POST(req: NextRequest) {
       type: 'recovery',
       email,
       options: {
-        redirectTo: `${process.env.NEXT_PUBLIC_APP_URL || 'https://www.fundedbirr.com'}/auth/reset-password`,
+        redirectTo: `https://www.fundedbirr.com/auth/reset-password`,
       }
     })
 
@@ -51,10 +51,7 @@ export async function POST(req: NextRequest) {
       resetLink
     )
 
-    console.log('RESET LINK for', email, ':', resetLink)
-    console.log('REDIRECT TO used:', process.env.NEXT_PUBLIC_APP_URL || 'https://www.fundedbirr.com' + '/auth/reset-password')
-
-    return NextResponse.json({ success: true, debug_link: resetLink })
+    return NextResponse.json({ success: true })
   } catch (err: any) {
     return NextResponse.json({ error: err.message }, { status: 500 })
   }
