@@ -51,7 +51,10 @@ export async function POST(req: NextRequest) {
       resetLink
     )
 
-    return NextResponse.json({ success: true })
+    console.log('RESET LINK for', email, ':', resetLink)
+    console.log('REDIRECT TO used:', process.env.NEXT_PUBLIC_APP_URL || 'https://www.fundedbirr.com' + '/auth/reset-password')
+
+    return NextResponse.json({ success: true, debug_link: resetLink })
   } catch (err: any) {
     return NextResponse.json({ error: err.message }, { status: 500 })
   }
