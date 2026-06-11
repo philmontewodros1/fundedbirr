@@ -335,7 +335,7 @@ export default function TradePage() {
     <div style={{ background: '#0D0F0A', minHeight: '100vh', color: '#F5F2E8', fontFamily: 'DM Sans, sans-serif' }}>
 
       {/* TOP BAR */}
-      <div style={{ background: '#151810', borderBottom: '1px solid #1E2218', padding: '0.75rem 1.5rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.5rem' }}>
+      <div className="trade-topbar" style={{ background: '#151810', borderBottom: '1px solid #1E2218', padding: '0.75rem 1.5rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.5rem' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
           <a href="/dashboard" style={{ color: '#9A9880', fontSize: '0.85rem', textDecoration: 'none' }}>← Dashboard</a>
           <span style={{ fontFamily: 'Syne, sans-serif', fontWeight: 800, color: '#F0C060', fontSize: '1.1rem' }}>
@@ -357,7 +357,7 @@ export default function TradePage() {
             </span>
           )}
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '2rem', fontSize: '0.85rem' }}>
+        <div className="trade-topbar-live" style={{ display: 'flex', alignItems: 'center', gap: '2rem', fontSize: '0.85rem' }}>
           <span>Live: <strong style={{ fontFamily: 'Syne, sans-serif', color: '#F0C060' }}>${price.toFixed(price < 10 ? 4 : 2)}</strong></span>
           {challenge && (
             <>
@@ -399,11 +399,11 @@ export default function TradePage() {
         </div>
       )}
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 300px', gap: 0, height: 'calc(100vh - 52px)' }}>
+      <div className="trade-grid" style={{ display: 'grid', gap: 0 }}>
 
         {/* LEFT */}
         <div style={{ display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-          <div ref={chartRef} style={{ width: '100%', flex: '0 0 380px', background: '#151810' }} />
+          <div ref={chartRef} className="trade-chart" style={{ width: '100%', flex: '0 0 380px', background: '#151810' }} />
 
           <div style={{ background: '#151810', borderTop: '1px solid #1E2218', padding: '0 1.5rem', display: 'flex', gap: '1rem' }}>
             {(['positions', 'history'] as const).map((t) => (
@@ -418,7 +418,7 @@ export default function TradePage() {
               openTrades.length === 0 ? (
                 <div style={{ padding: '2rem', textAlign: 'center', color: '#9A9880', fontSize: '0.875rem' }}>No open positions</div>
               ) : (
-                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.8rem' }}>
+                <table className="trade-positions-table" style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.8rem' }}>
                   <thead>
                     <tr style={{ background: '#151810', color: '#9A9880' }}>
                       {['Symbol', 'Dir', 'Lots', 'Entry', 'Current', 'P&L', 'SL', 'TP', ''].map((h) => (
@@ -454,7 +454,7 @@ export default function TradePage() {
               history.length === 0 ? (
                 <div style={{ padding: '2rem', textAlign: 'center', color: '#9A9880', fontSize: '0.875rem' }}>No trade history</div>
               ) : (
-                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.8rem' }}>
+                <table className="trade-positions-table" style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.8rem' }}>
                   <thead>
                     <tr style={{ background: '#151810', color: '#9A9880' }}>
                       {['Symbol', 'Date', 'Dir', 'Lots', 'Entry', 'Exit', 'P&L'].map((h) => (
@@ -484,7 +484,7 @@ export default function TradePage() {
         </div>
 
         {/* RIGHT */}
-        <div style={{ background: '#151810', borderLeft: '1px solid #1E2218', display: 'flex', flexDirection: 'column', overflow: 'auto' }}>
+        <div className="trade-sidebar" style={{ background: '#151810', borderLeft: '1px solid #1E2218', display: 'flex', flexDirection: 'column', overflow: 'auto' }}>
 
           <div style={{ padding: '1.25rem', borderBottom: '1px solid #1E2218' }}>
             <div style={{ fontSize: '0.7rem', color: '#9A9880', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '0.5rem' }}>{instr?.label || selectedSymbol}</div>
@@ -499,7 +499,7 @@ export default function TradePage() {
               </div>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '1rem' }}>
+            <div className="trade-buy-sell" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '1rem' }}>
               <button onClick={() => openTrade('buy')} disabled={loading || !price}
                 style={{ background: '#1D7A4A', color: '#fff', border: 'none', borderRadius: '8px', padding: '0.85rem', fontFamily: 'Syne, sans-serif', fontWeight: 800, fontSize: '0.95rem', cursor: 'pointer', opacity: loading ? 0.6 : 1 }}>
                 ▲ BUY
@@ -512,7 +512,7 @@ export default function TradePage() {
 
             <div style={{ marginBottom: '0.75rem' }}>
               <div style={{ fontSize: '0.7rem', color: '#9A9880', marginBottom: '0.4rem' }}>Lot Size</div>
-              <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap', marginBottom: '0.4rem' }}>
+              <div className="trade-lot-buttons" style={{ display: 'flex', gap: '4px', flexWrap: 'wrap', marginBottom: '0.4rem' }}>
                 {[0.01, 0.05, 0.10, 0.50, 1.00].map((l) => (
                   <button key={l} onClick={() => setLotSize(l)}
                     style={{ background: lotSize === l ? '#C9912A' : '#1E2218', color: lotSize === l ? '#0D0F0A' : '#9A9880', border: 'none', borderRadius: '4px', padding: '0.25rem 0.5rem', fontSize: '0.72rem', cursor: 'pointer', fontFamily: 'Syne, sans-serif', fontWeight: 700 }}>
@@ -565,7 +565,7 @@ export default function TradePage() {
               </div>
             ))}
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginTop: '0.75rem' }}>
+            <div className="trade-stats-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginTop: '0.75rem' }}>
               <div style={{ background: '#1E2218', borderRadius: '8px', padding: '0.75rem' }}>
                 <div style={{ fontSize: '0.65rem', color: '#9A9880' }}>Balance</div>
                 <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 800, fontSize: '0.9rem', color: '#F5F2E8' }}>

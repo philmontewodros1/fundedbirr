@@ -25,6 +25,7 @@ body {
   color: var(--text);
   -webkit-font-smoothing: antialiased;
   overflow-x: hidden;
+  min-height: 100dvh;
 }
 
 .font-syne {
@@ -230,4 +231,80 @@ body {
 }
 .safe-bottom {
   padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+/* Trading terminal responsive layout */
+.trade-grid {
+  display: grid;
+  height: calc(100dvh - 52px);
+}
+
+@media (min-width: 768px) {
+  .trade-grid {
+    grid-template-columns: 1fr 300px;
+  }
+}
+
+@media (max-width: 767px) {
+  .trade-grid {
+    grid-template-columns: 1fr;
+    grid-template-rows: 1fr auto;
+    overflow: hidden;
+  }
+
+  .trade-chart {
+    flex: 0 0 50vh !important;
+    min-height: 240px;
+  }
+
+  .trade-sidebar {
+    border-left: none !important;
+    border-top: 1px solid #1E2218;
+    max-height: 45vh;
+    overflow-y: auto;
+  }
+
+  .trade-topbar {
+    flex-wrap: nowrap !important;
+    overflow-x: auto;
+    gap: 0.4rem !important;
+    padding: 0.5rem 0.75rem !important;
+  }
+
+  .trade-topbar-live {
+    display: none;
+  }
+
+  .trade-buy-sell {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+  }
+
+  .trade-lot-buttons {
+    display: flex;
+    gap: 3px;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+  }
+
+  .trade-lot-buttons button {
+    font-size: 0.68rem !important;
+    padding: 0.2rem 0.4rem !important;
+  }
+
+  .trade-stats-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr !important;
+    gap: 6px;
+  }
+
+  .trade-positions-table {
+    font-size: 0.72rem !important;
+  }
+
+  .trade-positions-table th,
+  .trade-positions-table td {
+    padding: 0.4rem 0.5rem !important;
+  }
 }
