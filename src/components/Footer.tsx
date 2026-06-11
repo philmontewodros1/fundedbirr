@@ -35,6 +35,7 @@ export default function Footer() {
           <Link href="/terms" style={{ color: 'var(--text-muted)', textDecoration: 'none' }}>Terms</Link>
           <Link href="/faq" style={{ color: 'var(--text-muted)', textDecoration: 'none' }}>FAQ</Link>
           <Link href="/rules" style={{ color: 'var(--text-muted)', textDecoration: 'none' }}>Rules</Link>
+          <Link href="/install" style={{ color: 'var(--accent)', textDecoration: 'none' }}>📱 Install App</Link>
           <a href="https://t.me/+D6Fhx_vQz4o1Y2U0" style={{ color: 'var(--text-muted)', textDecoration: 'none' }}>Telegram</a>
           <a href="https://fundedbirracademy.com" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent)', textDecoration: 'none' }}>Academy ↗</a>
         </div>

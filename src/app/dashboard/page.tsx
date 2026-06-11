@@ -21,9 +21,12 @@ interface Challenge {
   trading_mode?: string;
   mt5_server?: string;
   mt5_login?: string;
+  mt5_password?: string;
   mt5_investor_password?: string;
+  mt5_password?: string;
   mt5_connected?: boolean;
   mt5_last_sync?: string;
+  mt5_report_secret?: string;
 }
 
 interface PaymentInfo {
@@ -224,18 +227,46 @@ export default function DashboardPage() {
                   <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Login</div>
                   <div style={{ fontFamily: "'Syne', sans-serif", fontSize: '0.95rem', fontWeight: 600 }}>{challenge.mt5_login || '—'}</div>
                 </div>
+                {challenge.mt5_password && (
+                  <div>
+                    <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Password</div>
+                    <div style={{ fontFamily: "'Syne', sans-serif", fontSize: '0.95rem', fontWeight: 600 }}>{challenge.mt5_password}</div>
+                  </div>
+                )}
               </div>
 
               <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginTop: '0.75rem' }}>
                 <a href="https://metatrader5.com/download" target="_blank" rel="noopener noreferrer" className="no-underline" style={{ background: '#1E2218', color: '#F5F2E8', border: '1px solid #272C1F', borderRadius: '8px', padding: '0.5rem 1rem', fontSize: '0.82rem', fontFamily: "'Syne', sans-serif", fontWeight: 600 }}>
                   Download MT5
                 </a>
-                <a href="https://web.exness.com" target="_blank" rel="noopener noreferrer" className="no-underline" style={{ background: '#1E2218', color: '#F5F2E8', border: '1px solid #272C1F', borderRadius: '8px', padding: '0.5rem 1rem', fontSize: '0.82rem', fontFamily: "'Syne', sans-serif", fontWeight: 600 }}>
-                  Trade on Web
+                <a href="/dashboard/trade" className="no-underline" style={{ background: '#1E2218', color: '#F5F2E8', border: '1px solid #272C1F', borderRadius: '8px', padding: '0.5rem 1rem', fontSize: '0.82rem', fontFamily: "'Syne', sans-serif", fontWeight: 600 }}>
+                  Trade on Web Terminal
                 </a>
                 <Link href="/dashboard/mt5-guide" className="no-underline" style={{ background: '#C9912A', color: '#0D0F0A', border: 'none', borderRadius: '8px', padding: '0.5rem 1rem', fontSize: '0.82rem', fontFamily: "'Syne', sans-serif", fontWeight: 600 }}>
                   Setup Guide →
                 </Link>
+              </div>
+
+              {/* Auto-Sync EA */}
+              <div style={{ marginTop: '1.25rem', borderTop: '1px solid rgba(75,158,255,0.1)', paddingTop: '1rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
+                  <span style={{ fontSize: '0.85rem' }}>🤖</span>
+                  <h4 style={{ fontFamily: "'Syne', sans-serif", fontWeight: 600, fontSize: '0.9rem', margin: 0, color: '#4B9EFF' }}>
+                    Auto Balance Reporter
+                  </h4>
+                </div>
+                <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginBottom: '0.75rem', lineHeight: 1.5 }}>
+                  Install the FundedBirr Reporter EA on your MT5 chart to automatically report your balance and equity. No manual admin sync needed.
+                </p>
+                <div style={{ background: '#0D0F0A', border: '1px solid #1E2218', borderRadius: '8px', padding: '0.75rem', marginBottom: '0.75rem' }}>
+                  <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.3rem' }}>Your Report Secret</div>
+                  <div style={{ fontFamily: "'DM Mono', monospace", fontSize: '0.85rem', color: '#E8B84B', letterSpacing: '0.05em', userSelect: 'all' }}>
+                    {challenge.mt5_report_secret || '—'}
+                  </div>
+                </div>
+                <a href="/api/mt5/ea-download" className="no-underline" style={{ background: '#1E2218', color: '#4B9EFF', border: '1px solid rgba(75,158,255,0.2)', borderRadius: '8px', padding: '0.5rem 1rem', fontSize: '0.78rem', fontFamily: "'Syne', sans-serif", fontWeight: 600, display: 'inline-block' }}>
+                  ↓ Download Reporter EA
+                </a>
               </div>
             </div>
           )}

@@ -38,12 +38,15 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: 'MT5 credentials required' }, { status: 400 })
       }
 
+      const reportSecret = Math.random().toString(36).substring(2, 10) + Date.now().toString(36)
+
       await supabase.from('challenges').update({
         trading_mode: 'mt5',
         mt5_broker: mt5_broker || 'Exness',
         mt5_server,
         mt5_login: mt5_login.toString(),
         mt5_investor_password,
+        mt5_report_secret: reportSecret,
         mt5_connected: true,
         current_balance: challenge.virtual_balance,
         current_equity: challenge.virtual_balance,
@@ -51,7 +54,7 @@ export async function POST(req: NextRequest) {
         last_reset_date: new Date().toISOString().split('T')[0],
       }).eq('id', challenge_id)
 
-      return NextResponse.json({ success: true, mode: 'mt5', message: 'MT5 mode activated. Admin will sync your balance.' })
+      return NextResponse.json({ success: true, mode: 'mt5', message: 'MT5 mode activated.' })
     }
 
     await supabase.from('challenges').update({

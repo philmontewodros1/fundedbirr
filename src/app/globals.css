@@ -161,3 +161,73 @@ body {
 .btn-yellow-sm:hover {
   background: rgba(201,145,42,0.2);
 }
+
+/* PWA / Install banner */
+.install-banner {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: #1E2218;
+  border-top: 1px solid rgba(201,145,42,0.3);
+  padding: 0.75rem 1rem;
+  padding-bottom: calc(0.75rem + env(safe-area-inset-bottom, 0px));
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.install-banner-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  background: #0D0F0A;
+  border: 1px solid rgba(201,145,42,0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Syne', sans-serif;
+  font-weight: 800;
+  font-size: 14px;
+  color: #F0C060;
+  flex-shrink: 0;
+}
+
+.install-banner-text {
+  flex: 1;
+}
+
+.install-banner-title {
+  font-family: 'Syne', sans-serif;
+  font-weight: 700;
+  font-size: 13px;
+  color: #F5F2E8;
+  margin-bottom: 2px;
+}
+
+.install-banner-sub {
+  font-size: 12px;
+  color: #9A9880;
+}
+
+.install-banner-sub strong {
+  color: #F5F2E8;
+}
+
+.install-banner-close {
+  background: none;
+  border: none;
+  color: #9A9880;
+  font-size: 20px;
+  cursor: pointer;
+  padding: 4px 8px;
+}
+
+/* Safe area padding for iPhone notch */
+.safe-top {
+  padding-top: env(safe-area-inset-top, 0px);
+}
+.safe-bottom {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}

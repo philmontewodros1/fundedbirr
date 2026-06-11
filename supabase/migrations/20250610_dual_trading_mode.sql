@@ -15,6 +15,30 @@ alter table challenges add column if not exists mt5_last_sync timestamp;
 alter table challenges add column if not exists model text not null default '2step';
 alter table payments add column if not exists model text not null default '2step';
 
+-- Add approval/rejection columns to payments
+alter table payments add column if not exists approved_at timestamptz;
+alter table payments add column if not exists approved_by uuid references auth.users(id);
+alter table payments add column if not exists rejected_at timestamptz;
+alter table payments add column if not exists rejected_by uuid references auth.users(id);
+alter table payments add column if not exists rejection_reason text;
+
+-- Add approval columns to challenges
+alter table challenges add column if not exists approved_by uuid references auth.users(id);
+alter table challenges add column if not exists approved_at timestamptz;
+
+-- Add EA webhook report secret to challenges
+alter table challenges add column if not exists mt5_report_secret text;
+
+-- Add auto-sync tracking columns to challenges
+alter table challenges add column if not exists mt5_last_balance numeric;
+alter table challenges add column if not exists mt5_last_equity numeric;
+alter table challenges add column if not exists mt5_peak_balance numeric;
+alter table challenges add column if not exists mt5_peak_balance_date date;
+alter table challenges add column if not exists mt5_trading_days integer default 0;
+alter table challenges add column if not exists mt5_rule_daily_dd numeric;
+alter table challenges add column if not exists mt5_rule_max_dd numeric;
+alter table challenges add column if not exists mt5_rule_profit_pct numeric;
+
 -- MT5 account pool table
 create table if not exists mt5_account_pool (
   id uuid primary key default gen_random_uuid(),

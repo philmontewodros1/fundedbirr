@@ -7,6 +7,10 @@
     {
       "path": "/api/cron/sync-reminder",
       "schedule": "0 6 * * 1-5"
+    },
+    {
+      "path": "/api/cron/mt5-auto-sync",
+      "schedule": "0 7 * * 1-5"
     }
   ]
 }

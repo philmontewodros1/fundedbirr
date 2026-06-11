@@ -119,10 +119,13 @@ export async function PATCH(req: Request) {
           mt5_broker: 'Exness',
           mt5_server: mt5Account.server,
           mt5_login: mt5Account.login,
+          mt5_password: mt5Account.password,
           mt5_investor_password: mt5Account.investor_password,
           mt5_connected: true,
         };
       }
+
+      const reportSecret = Math.random().toString(36).substring(2, 10) + Date.now().toString(36)
 
       const { data: newChallenge, error: challengeError } = await adminClient.from('challenges').insert({
         user_id: payment.user_id,
@@ -137,6 +140,7 @@ export async function PATCH(req: Request) {
         max_loss_limit: config.maxLoss,
         approved_by: admin.id,
         approved_at: new Date().toISOString(),
+        mt5_report_secret: reportSecret,
         ...mt5Fields,
       }).select().single();
 
