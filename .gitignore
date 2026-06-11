@@ -8,3 +8,5 @@ bot/.env
 next-env.d.ts
 .vercel
 scripts/test-trading.mjs
+mobile/
+update/
