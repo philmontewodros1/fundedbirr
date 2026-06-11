@@ -23,7 +23,6 @@ interface Challenge {
   mt5_login?: string;
   mt5_password?: string;
   mt5_investor_password?: string;
-  mt5_password?: string;
   mt5_connected?: boolean;
   mt5_last_sync?: string;
   mt5_report_secret?: string;
